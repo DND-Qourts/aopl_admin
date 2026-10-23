@@ -1055,10 +1055,11 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="summary-item"><label>Submitted</label><b id="liveDuprSubmitted">—</b></div>
       <div class="summary-item"><label>Player Cap</label><b id="liveDuprCap">—</b></div>
     </div>
-    <div class="fieldx">
+    <div class="fieldx" id="liveDuprRatingField">
       <label for="liveDuprVerifiedInput">Verified DUPR rating</label>
-      <input id="liveDuprVerifiedInput" type="number" min="0" max="9" step="0.01" inputmode="decimal">
+      <input id="liveDuprVerifiedInput" type="text" maxlength="5" autocomplete="off" inputmode="decimal" placeholder="0.00">
     </div>
+    <div class="note" id="liveDuprNrNote" style="display:none;margin-top:12px"></div>
     <div class="note" style="margin-top:12px">This writes the verified rating to production and creates an audit-log entry. It does not approve the team for payment or lock eligibility yet.</div>
     <div id="liveDuprReopenWrap" class="fieldx" style="display:none;margin-top:12px">
       <label for="liveDuprReopenReason">Reason for marking Needs Review</label>
@@ -1220,7 +1221,7 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="fieldx"><label>Email <span class="req">*</span></label><input id="liveRosterReplacementEmail" type="email" maxlength="180"></div>
       <div class="fieldx"><label>Mobile <span class="req">*</span></label><input id="liveRosterReplacementMobile" maxlength="20" placeholder="09XXXXXXXXX"></div>
       <div class="fieldx"><label>DUPR ID <span class="req">*</span></label><input id="liveRosterReplacementDuprId" maxlength="30"></div>
-      <div class="fieldx"><label>Submitted DUPR <span class="req">*</span></label><input id="liveRosterReplacementDupr" type="number" min="0" max="9" step="0.01"></div>
+      <div class="fieldx"><label>Submitted DUPR <span class="req">*</span></label><input id="liveRosterReplacementDupr" type="text" maxlength="5" autocomplete="off" inputmode="decimal" placeholder="0.00"><label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600"><input id="liveRosterReplacementNr" type="checkbox" style="width:auto"> NR (no DUPR rating; the DUPR ID is still required)</label></div>
       <div class="fieldx"><label>Shirt Size <span class="req">*</span></label>
         <select id="liveRosterReplacementShirt"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
       </div>
@@ -3668,7 +3669,7 @@ renderNav();renderDashboard();
   function auditEntryDescription(e){
     const c=e.context||{};
     if(e.action==="registration_player_dupr_verified"){
-      const rating=c.verifiedDupr==null?"":` at ${Number(c.verifiedDupr).toFixed(2)}`;
+      const rating=c.isNr?" confirmed as NR":c.verifiedDupr==null?"":` at ${Number(c.verifiedDupr).toFixed(2)}`;
       return `${c.playerName||"Player"}${rating}${c.duprId?` · ${c.duprId}`:""}`;
     }
     if(e.action==="registration_player_dupr_reopened"){
@@ -3920,7 +3921,7 @@ renderNav();renderDashboard();
     }
     if(type==="confirmed"){
       header=["Reference","Team","Division","Player","Role","Gender","Email","Mobile","DUPR ID","DUPR","Shirt"];
-      active.filter(r=>r.status==="confirmed").forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.is_captain?"Captain":`Player ${m.slot||""}`,m.player?.gender||"",m.player?.email||"",m.player?.mobile||"",m.player?.dupr_id||"",m.locked_dupr??m.verified_dupr??m.submitted_dupr??"",m.shirt_size||""])));
+      active.filter(r=>r.status==="confirmed").forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.is_captain?"Captain":`Player ${m.slot||""}`,m.player?.gender||"",m.player?.email||"",m.player?.mobile||"",m.player?.dupr_id||"",m.is_nr?"NR":(m.locked_dupr??m.verified_dupr??m.submitted_dupr??""),m.shirt_size||""])));
     }
     if(type==="payments"){
       header=["Reference","Team","Division","Registration Status","Payment Status","Amount","Method","Provider Reference","Submitted","Verified"];
@@ -3932,7 +3933,7 @@ renderNav();renderDashboard();
     }
     if(type==="dupr"){
       header=["Reference","Team","Division","Player","DUPR ID","Submitted DUPR","Verified DUPR","Locked DUPR","Verification Status"];
-      active.forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.player?.dupr_id||"",m.submitted_dupr??"",m.verified_dupr??"",m.locked_dupr??"",m.dupr_verification_status||""])));
+      active.forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.player?.dupr_id||"",m.is_nr?"NR":(m.submitted_dupr??""),m.verified_dupr??"",m.locked_dupr??"",m.dupr_verification_status||""])));
     }
     if(type==="shirts"){
       header=["Reference","Team","Registration Status","Player","Gender","Shirt Size"];
@@ -4295,7 +4296,7 @@ renderNav();renderDashboard();
             </div></td>
           <td>${esc(division.name||division.code||"—")}</td>
           <td><b>${Number(r.team_dupr_submitted||0).toFixed(2)}</b>
-            <div class="dim">cap ${Number(division.team_rating_cap||0).toFixed(2)}</div></td>
+            <div class="dim">cap ${Number(division.team_rating_cap||0).toFixed(2)}${(r.players||[]).some(m=>m.is_nr)?` · ${(r.players||[]).filter(m=>m.is_nr).length} NR`:""}</div></td>
           <td><div class="stack"><b>${esc(captain.full_name||"—")}</b><span class="dim">${esc(captain.email||"—")}</span></div></td>
           <td>${verified?'<span class="pill p-ok">Verified</span>':'<span class="pill p-action">Needs review</span>'}</td>
           <td>${liveRegistrationPaymentBadge(r)}</td>
@@ -4561,15 +4562,14 @@ renderNav();renderDashboard();
 
   function liveWaitlistReviewState(r){
     const members=r?.players||[];
-    const allVerified=members.length===4&&members.every(m=>m.dupr_verification_status==="verified"&&m.verified_dupr!=null);
+    const allVerified=members.length===4&&members.every(liveIsVerified);
     const d=r?.division||liveDivisionById(r?.division_id)||{};
     const playerCap=Number(d.player_rating_cap||0);
     const teamCap=Number(d.team_rating_cap||0);
-    const effective=m=>Number(m?.verified_dupr??m?.submitted_dupr??0);
-    const individualCaps=members.length===4&&members.every(m=>effective(m)<=playerCap);
-    const teamTotal=Number(members.reduce((sum,m)=>sum+effective(m),0).toFixed(2));
+    const individualCaps=members.length===4&&livePlayerCapsOk(members,d,playerCap);
+    const teamTotal=liveTeamTotal(members,d);
     const openIssues=(r?.issues||[]).filter(i=>i.status==="open");
-    return {allVerified,individualCaps,teamTotal,teamCap,openIssues,ready:allVerified&&individualCaps&&teamTotal<=teamCap&&openIssues.length===0};
+    return {allVerified,individualCaps,teamTotal,teamCap,openIssues,ready:allVerified&&individualCaps&&liveTeamCapOk(members,d,teamCap)&&openIssues.length===0};
   }
 
   function renderLiveWaitlistTable(rows){
@@ -4824,12 +4824,29 @@ renderNav();renderDashboard();
   const liveDuprReopenReason = document.getElementById("liveDuprReopenReason");
   const liveDuprReviewError = document.getElementById("liveDuprReviewError");
 
-  function liveEffectiveDupr(member){
+  // NR players carry no rating. They count as their division's NR equivalent, and are compared like any other rating.
+  // Every cap check uses whole hundredths so 14.00 / 14.01 style boundaries are exact.
+  const liveHundredths=n=>Math.round(Number(n)*100);
+  const liveFmt=n=>Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
+  const liveRatingText=v=>/^[0-9]+([.][0-9]{1,2})?$/.test(v)&&Number(v)>0&&Number(v)<=9;
+  // Verified means the organizer has checked the player. For an NR player that is a confirmation, not a rating.
+  function liveIsVerified(member){
+    return member?.dupr_verification_status==="verified"&&(member?.is_nr===true||member?.verified_dupr!=null);
+  }
+  function liveEffectiveDupr(member,division){
+    if(member?.is_nr===true){
+      const equivalent=Number(division?.nr_equivalent);
+      // A division with no NR equivalent makes the cap checks fail rather than counting NR as zero.
+      return division?.nr_equivalent!=null&&Number.isFinite(equivalent)?equivalent:NaN;
+    }
     if(member?.dupr_verification_status==="verified" && member?.verified_dupr!=null){
       return Number(member.verified_dupr||0);
     }
     return Number(member?.submitted_dupr||0);
   }
+  const liveTeamTotal=(members,division)=>members.reduce((sum,m)=>sum+liveHundredths(liveEffectiveDupr(m,division)),0)/100;
+  const livePlayerCapsOk=(members,division,playerCap)=>members.every(m=>liveHundredths(liveEffectiveDupr(m,division))<=liveHundredths(playerCap));
+  const liveTeamCapOk=(members,division,teamCap)=>liveHundredths(liveTeamTotal(members,division))<=liveHundredths(teamCap);
 
   function closeLiveDuprReview(){
     liveDuprReviewModal?.classList.remove("open");
@@ -4855,27 +4872,35 @@ renderNav();renderDashboard();
     }
     const d=r.division||liveDivisionById(r.division_id)||{};
     const p=m.player||{};
-    const isVerified=m.dupr_verification_status==="verified"&&m.verified_dupr!=null;
-    liveDuprReviewContext={registrationId,membershipId,isVerified};
+    const isNr=m.is_nr===true;
+    const isVerified=liveIsVerified(m);
+    liveDuprReviewContext={registrationId,membershipId,isVerified,isNr};
     liveDuprPlayerName.textContent=p.full_name||"—";
     liveDuprPlayerId.textContent=p.dupr_id||"—";
-    liveDuprSubmitted.textContent=Number(m.submitted_dupr||0).toFixed(2);
+    liveDuprSubmitted.textContent=isNr?"NR":Number(m.submitted_dupr||0).toFixed(2);
     liveDuprCap.textContent=Number(d.player_rating_cap||0).toFixed(2);
-    liveDuprVerifiedInput.value=Number(m.verified_dupr??m.submitted_dupr??0).toFixed(2);
+    liveDuprVerifiedInput.value=isNr?"":Number(m.verified_dupr??m.submitted_dupr??0).toFixed(2);
+    document.getElementById("liveDuprRatingField").style.display=isNr?"none":"";
+    const nrNote=document.getElementById("liveDuprNrNote");
+    nrNote.style.display=isNr?"block":"none";
+    nrNote.textContent=isNr?`Registered as NR (no DUPR rating). Look the DUPR ID up on DUPR and confirm NR only if the ID is valid and the player really has no rating. A valid ID alone does not verify NR. The team total counts this player as ${liveFmt(liveEffectiveDupr(m,d))}.`:"";
+    liveDuprReviewConfirm.textContent=isNr?"Confirm NR":"Mark Verified";
     liveDuprReviewError.style.display="none";
     liveDuprReviewError.textContent="";
     if(liveDuprReopenReason) liveDuprReopenReason.value="";
     if(liveDuprReopenWrap) liveDuprReopenWrap.style.display=isVerified?"block":"none";
     if(liveDuprReopen) liveDuprReopen.style.display=isVerified?"inline-flex":"none";
     liveDuprReviewModal.classList.add("open");
-    setTimeout(()=>liveDuprVerifiedInput.focus(),0);
+    setTimeout(()=>{ if(!isNr) liveDuprVerifiedInput.focus(); },0);
   };
 
   async function submitLiveDuprReview(){
     if(!liveDuprReviewContext) return;
-    const value=Number(liveDuprVerifiedInput.value);
-    if(!Number.isFinite(value) || value<0 || value>9){
-      liveDuprReviewError.textContent="Enter a verified DUPR rating between 0.00 and 9.00.";
+    const isNr=liveDuprReviewContext.isNr===true;
+    // The rating is sent as typed text: more than two decimals is refused, never rounded.
+    const text=String(liveDuprVerifiedInput.value||"").trim();
+    if(!isNr && !liveRatingText(text)){
+      liveDuprReviewError.textContent="Enter a verified DUPR rating between 0.01 and 9.00, with at most two decimals.";
       liveDuprReviewError.style.display="block";
       return;
     }
@@ -4884,12 +4909,11 @@ renderNav();renderDashboard();
     liveDuprReviewError.style.display="none";
     try{
       const ctx={...liveDuprReviewContext};
-      const result=await api("verify_dupr_player",{
-        registrationPlayerId:ctx.membershipId,
-        verifiedDupr:Number(value.toFixed(2))
-      });
+      const result=await api("verify_dupr_player",isNr
+        ?{registrationPlayerId:ctx.membershipId,confirmNr:true}
+        :{registrationPlayerId:ctx.membershipId,verifiedDupr:text});
       closeLiveDuprReview();
-      showToast("DUPR verified",`${result.result?.player?.fullName||"Player"} was marked verified in production.`);
+      showToast(isNr?"NR confirmed":"DUPR verified",`${result.result?.player?.fullName||"Player"} was ${isNr?"confirmed as NR":"marked verified"} in production.`);
       await loadLiveRegistrations(true);
       renderNav();
       openLiveRegistration(ctx.registrationId);
@@ -4899,12 +4923,14 @@ renderNav();renderDashboard();
         ADMIN_FORBIDDEN:"Your role is not allowed to verify DUPR records.",
         REGISTRATION_ELIGIBILITY_LOCKED:"Eligibility is already locked for this registration.",
         REGISTRATION_REVIEW_CLOSED:"This registration is no longer in a reviewable state.",
-        DUPR_VERIFICATION_WRITE_FAILED:"The verified DUPR could not be saved. No change was applied."
+        DUPR_VERIFICATION_WRITE_FAILED:"The verified DUPR could not be saved. No change was applied.",
+        DUPR_VERIFICATION_INPUT_INVALID:"Enter a verified DUPR rating above 0.00 and up to 9.00, with at most two decimals.",
+        DUPR_VERIFICATION_NR_CONFIRM_REQUIRED:"This player is registered as NR. Confirm NR instead of entering a rating."
       }[code]||code;
       liveDuprReviewError.textContent=friendly;
       liveDuprReviewError.style.display="block";
       liveDuprReviewConfirm.disabled=false;
-      liveDuprReviewConfirm.textContent="Mark Verified";
+      liveDuprReviewConfirm.textContent=isNr?"Confirm NR":"Mark Verified";
     }
   }
 
@@ -4997,9 +5023,11 @@ renderNav();renderDashboard();
     const targetTeamCap=Number(target.team_rating_cap||0);
     const targetPlayerCap=Number(target.player_rating_cap||0);
     const remaining=Number(target.remaining??0);
-    const allVerified=ctx.members.length===4&&ctx.members.every(m=>m.dupr_verification_status==="verified"&&m.verified_dupr!=null);
-    const playerCaps=allVerified&&ctx.members.every(m=>Number(m.verified_dupr)<=targetPlayerCap);
-    const teamCapOk=allVerified&&ctx.teamDupr<=targetTeamCap;
+    const allVerified=ctx.members.length===4&&ctx.members.every(liveIsVerified);
+    // NR players count as the destination division's NR equivalent.
+    const targetTotal=liveTeamTotal(ctx.members,target);
+    const playerCaps=allVerified&&livePlayerCapsOk(ctx.members,target,targetPlayerCap);
+    const teamCapOk=allVerified&&liveTeamCapOk(ctx.members,target,targetTeamCap);
     const eligible=ctx.rosterComplete&&ctx.genderComplete&&allVerified&&playerCaps&&teamCapOk;
     const result=remaining>0?"Under Review · slot reserved":"Waitlisted · joins back of queue";
     liveDivisionTargetTeamCap.textContent=targetTeamCap.toFixed(2);
@@ -5012,7 +5040,7 @@ renderNav();renderDashboard();
       const reasons=[];
       if(!allVerified) reasons.push("all four DUPRs must be verified");
       if(allVerified&&!playerCaps) reasons.push(`a player exceeds the ${targetPlayerCap.toFixed(2)} cap`);
-      if(allVerified&&!teamCapOk) reasons.push(`team DUPR ${ctx.teamDupr.toFixed(2)} exceeds ${targetTeamCap.toFixed(2)}`);
+      if(allVerified&&!teamCapOk) reasons.push(`team DUPR ${liveFmt(targetTotal)} exceeds ${targetTeamCap.toFixed(2)}`);
       liveDivisionChangeError.textContent=`Cannot move to ${target.name||target.code}: ${reasons.join("; ")||"destination eligibility is not satisfied"}.`;
       liveDivisionChangeError.style.display="block";
     }else{
@@ -5036,8 +5064,8 @@ renderNav();renderDashboard();
     const members=r.players||[];
     const maleCount=members.filter(m=>String(m.player?.gender||"").trim().toLowerCase()==="male").length;
     const femaleCount=members.filter(m=>String(m.player?.gender||"").trim().toLowerCase()==="female").length;
-    const teamDupr=Number(members.reduce((sum,m)=>sum+Number(m.verified_dupr||0),0).toFixed(2));
-    const highest=members.reduce((max,m)=>Math.max(max,Number(m.verified_dupr||0)),0);
+    const teamDupr=liveTeamTotal(members,current);
+    const highest=members.reduce((max,m)=>Math.max(max,liveEffectiveDupr(m,current)||0),0);
     const options=(liveRegistrationsSnapshot?.divisions||[]).filter(d=>d.id!==r.division_id && d.is_open!==false);
     if(!options.length){
       showToast("No destination division","There is no other open division available for this event.");
@@ -5051,8 +5079,8 @@ renderNav();renderDashboard();
       genderComplete:maleCount===2&&femaleCount===2
     };
     liveDivisionCurrent.textContent=current.name||current.code||"—";
-    liveDivisionTeamDupr.textContent=teamDupr.toFixed(2);
-    liveDivisionHighestDupr.textContent=highest.toFixed(2);
+    liveDivisionTeamDupr.textContent=liveFmt(teamDupr);
+    liveDivisionHighestDupr.textContent=liveFmt(highest);
     liveDivisionReference.textContent=r.reference||"—";
     liveDivisionTarget.innerHTML=options.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.code||"Division")}</option>`).join("");
     liveDivisionReason.value="";
@@ -5135,6 +5163,11 @@ renderNav();renderDashboard();
   const liveRosterReplacementMobile=document.getElementById("liveRosterReplacementMobile");
   const liveRosterReplacementDuprId=document.getElementById("liveRosterReplacementDuprId");
   const liveRosterReplacementDupr=document.getElementById("liveRosterReplacementDupr");
+  const liveRosterReplacementNr=document.getElementById("liveRosterReplacementNr");
+  liveRosterReplacementNr?.addEventListener("change",()=>{
+    liveRosterReplacementDupr.disabled=liveRosterReplacementNr.checked;
+    if(liveRosterReplacementNr.checked) liveRosterReplacementDupr.value="";
+  });
   const liveRosterReplacementShirt=document.getElementById("liveRosterReplacementShirt");
   const liveRosterReplacementReason=document.getElementById("liveRosterReplacementReason");
   const liveRosterReplacementImpact=document.getElementById("liveRosterReplacementImpact");
@@ -5166,6 +5199,8 @@ renderNav();renderDashboard();
     liveRosterReplacementMobile.value="";
     liveRosterReplacementDuprId.value="";
     liveRosterReplacementDupr.value="";
+    liveRosterReplacementDupr.disabled=false;
+    if(liveRosterReplacementNr) liveRosterReplacementNr.checked=false;
     liveRosterReplacementShirt.value=m.shirt_size||"M";
     liveRosterReplacementReason.value="";
     liveRosterReplacementError.style.display="none";
@@ -5186,12 +5221,13 @@ renderNav();renderDashboard();
       email:String(liveRosterReplacementEmail.value||"").trim(),
       mobile:String(liveRosterReplacementMobile.value||"").trim(),
       duprId:String(liveRosterReplacementDuprId.value||"").trim(),
-      submittedDupr:Number(liveRosterReplacementDupr.value),
+      isNr:!!liveRosterReplacementNr?.checked,
+      submittedDupr:liveRosterReplacementNr?.checked?"":String(liveRosterReplacementDupr.value||"").trim(),
       shirtSize:String(liveRosterReplacementShirt.value||""),
       reason:String(liveRosterReplacementReason.value||"").trim()
     };
-    if(!payload.fullName||!payload.email||!payload.mobile||!payload.duprId||!Number.isFinite(payload.submittedDupr)||payload.reason.length<3){
-      liveRosterReplacementError.textContent="Complete all replacement fields and enter an approval reason.";
+    if(!payload.fullName||!payload.email||!payload.mobile||!payload.duprId||(!payload.isNr&&!liveRatingText(payload.submittedDupr))||payload.reason.length<3){
+      liveRosterReplacementError.textContent="Complete all replacement fields (a rating above 0.00 and up to 9.00 with at most two decimals, or NR) and enter an approval reason.";
       liveRosterReplacementError.style.display="block";
       return;
     }
@@ -5217,7 +5253,8 @@ renderNav();renderDashboard();
         TEAM_DUPR_CAP_EXCEEDED:"The replacement would put the team's current DUPR total over the division cap.",
         ROSTER_REPLACEMENT_PAYMENT_SUBMITTED:"A payment proof is currently awaiting verification. Resolve payment first before changing the roster.",
         ROSTER_REPLACEMENT_STATUS_INVALID:"This registration is already closed and cannot be edited.",
-        ROSTER_REPLACEMENT_SAME_PLAYER:"Choose a different replacement player."
+        ROSTER_REPLACEMENT_SAME_PLAYER:"Choose a different replacement player.",
+        ROSTER_REPLACEMENT_DUPR_INVALID:"Enter a rating above 0.00 and up to 9.00 with at most two decimals, or tick NR."
       }[code]||code;
       liveRosterReplacementError.textContent=friendly;
       liveRosterReplacementError.style.display="block";
@@ -5318,10 +5355,10 @@ renderNav();renderDashboard();
   window.openLiveRosterRevalidation=function(registrationId){
     const r=getLiveRegistrationRows().find(x=>x.id===registrationId);
     if(!r) return;
-    const total=(r.players||[]).reduce((sum,m)=>sum+Number(m.verified_dupr||0),0);
+    const total=liveTeamTotal(r.players||[],r.division||liveDivisionById(r.division_id)||{});
     liveRosterRevalidationContext={registrationId};
     liveRosterRevalidationTeam.textContent=r.team_name||"—";
-    liveRosterRevalidationDupr.textContent=total.toFixed(2);
+    liveRosterRevalidationDupr.textContent=liveFmt(total);
     liveRosterRevalidationReason.value="";
     liveRosterRevalidationError.style.display="none";
     liveRosterRevalidationModal.classList.add("open");
@@ -5504,8 +5541,8 @@ renderNav();renderDashboard();
     if(!r) return;
     const d=r.division||liveDivisionById(r.division_id)||{};
     const members=r.players||[];
-    const reviewTotal=Number(members.reduce((sum,m)=>sum+liveEffectiveDupr(m),0).toFixed(2));
-    const allVerified=members.length===4&&members.every(m=>m.dupr_verification_status==="verified"&&m.verified_dupr!=null);
+    const reviewTotal=liveTeamTotal(members,d);
+    const allVerified=members.length===4&&members.every(liveIsVerified);
     const openIssues=(r.issues||[]).filter(i=>i.status==="open");
     if(r.status!=="under_review" || r.payment_status!=="not_requested" || r.eligibility_locked_at || !allVerified || openIssues.length){
       showToast("Approval not ready","Complete eligibility review and resolve open issues before approving payment.");
@@ -5514,7 +5551,7 @@ renderNav();renderDashboard();
     livePaymentApprovalContext={registrationId};
     livePaymentApprovalTeam.textContent=r.team_name||"—";
     livePaymentApprovalReference.textContent=r.reference||"—";
-    livePaymentApprovalDupr.textContent=`${reviewTotal.toFixed(2)} / ${Number(d.team_rating_cap||0).toFixed(2)}`;
+    livePaymentApprovalDupr.textContent=`${liveFmt(reviewTotal)} / ${Number(d.team_rating_cap||0).toFixed(2)}`;
     livePaymentApprovalFee.textContent=`₱${Number(d.registration_fee||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     if(livePaymentApprovalProjectedDue){
       livePaymentApprovalProjectedDue.textContent=formatDateTime(new Date(Date.now()+(24*60*60*1000)));
@@ -5888,12 +5925,12 @@ renderNav();renderDashboard();
     const teamCap=Number(division.team_rating_cap||0);
     const playerCap=Number(division.player_rating_cap||0);
     const submittedTotal=Number(r.team_dupr_submitted||0);
-    const reviewTotal=Number(members.reduce((sum,m)=>sum+liveEffectiveDupr(m),0).toFixed(2));
+    const reviewTotal=liveTeamTotal(members,division);
     const rosterComplete=members.length===4;
     const genderComplete=maleCount===2&&femaleCount===2;
-    const allVerified=members.length===4&&members.every(m=>m.dupr_verification_status==="verified");
-    const individualCaps=members.every(m=>liveEffectiveDupr(m)<=playerCap);
-    const teamCapOk=reviewTotal<=teamCap;
+    const allVerified=members.length===4&&members.every(liveIsVerified);
+    const individualCaps=livePlayerCapsOk(members,division,playerCap);
+    const teamCapOk=liveTeamCapOk(members,division,teamCap);
     const latestWindow=(r.payment_windows||[])[0]||null;
     const latestPayment=(r.payments||[])[0]||null;
     const openIssues=(r.issues||[]).filter(i=>i.status==="open");
@@ -5966,7 +6003,7 @@ renderNav();renderDashboard();
     drawerBody.innerHTML=`
       <div class="summary-grid">
         <div class="summary-item"><label>Division</label><b>${esc(division.name||division.code||"—")}</b>${canChangeDivision?`<button class="mini-btn" style="margin-top:8px" onclick="openLiveDivisionChange('${esc(r.id)}')">Change Division</button>`:""}</div>
-        <div class="summary-item"><label>Team DUPR</label><b>${reviewTotal.toFixed(2)} / ${teamCap.toFixed(2)}</b><small>${reviewTotal!==submittedTotal?`Submitted ${submittedTotal.toFixed(2)}`:"Current review total"}</small></div>
+        <div class="summary-item"><label>Team DUPR</label><b>${liveFmt(reviewTotal)} / ${teamCap.toFixed(2)}</b><small>${liveHundredths(reviewTotal)!==liveHundredths(submittedTotal)?`Submitted ${submittedTotal.toFixed(2)}`:"Current review total"}${members.some(m=>m.is_nr)?` · includes ${members.filter(m=>m.is_nr).length} NR at ${liveFmt(division.nr_equivalent)}`:""}</small></div>
         <div class="summary-item"><label>Registration Source</label><b>${r.source==="admin"?"Admin":"Player Portal"}</b></div>
         <div class="summary-item"><label>Slot</label><b>${r.holds_slot?"Reserved":"Not reserved"}</b></div>
         <div class="summary-item"><label>Payment</label><b>${esc(liveRegistrationPaymentLabel(r))}</b></div>
@@ -5981,18 +6018,19 @@ renderNav();renderDashboard();
           <thead><tr><th>Player</th><th>Contact</th><th>Gender</th><th>DUPR</th><th>Shirt</th><th>Verification</th><th>Governance</th></tr></thead>
           <tbody>${members.map(m=>{
             const p=m.player||{};
-            const effective=liveEffectiveDupr(m);
-            const verified=m.dupr_verification_status==="verified";
+            const effective=liveEffectiveDupr(m,division);
+            const verified=liveIsVerified(m);
+            const isNr=m.is_nr===true;
             const canEdit=canReviewDupr&&!m.dupr_locked_at;
             return `<tr>
               <td><div class="teamname">${esc(p.full_name||"—")}</div><div class="dim">${m.is_captain?"Team Captain":`Player ${Number(m.slot||0)}`}</div></td>
               <td><div class="live-reg-contact"><span>${esc(p.email||"—")}</span><span class="dim">${esc(p.mobile||"—")}</span></div></td>
               <td>${esc(p.gender||"—")}</td>
-              <td><b>${effective.toFixed(2)}</b><div class="dim">${esc(p.dupr_id||"—")} · submitted ${Number(m.submitted_dupr||0).toFixed(2)} · cap ${playerCap.toFixed(2)}</div></td>
+              <td><b>${isNr?"NR":liveFmt(effective)}</b><div class="dim">${esc(p.dupr_id||"—")} · ${isNr?`counts ${liveFmt(effective)}`:`submitted ${Number(m.submitted_dupr||0).toFixed(2)}`} · cap ${playerCap.toFixed(2)}</div></td>
               <td>${esc(m.shirt_size||"—")}</td>
               <td>
-                ${verified?'<span class="pill p-ok">Verified</span>':`<span class="pill p-action">${esc(m.dupr_verification_status||"pending")}</span>`}
-                ${canEdit?`<button class="mini-btn" style="margin-left:7px" onclick="openLiveDuprReview('${esc(r.id)}','${esc(m.id)}')">${verified?"Review":"Verify"}</button>`:""}
+                ${verified?`<span class="pill p-ok">${isNr?"NR confirmed":"Verified"}</span>`:`<span class="pill p-action">${isNr?"NR · needs check":esc(m.dupr_verification_status||"pending")}</span>`}
+                ${canEdit?`<button class="mini-btn" style="margin-left:7px" onclick="openLiveDuprReview('${esc(r.id)}','${esc(m.id)}')">${verified?"Review":isNr?"Confirm NR":"Verify"}</button>`:""}
               </td>
               <td>
                 ${canGovernRoster?`<button class="mini-btn" onclick="openLiveRosterReplacement('${esc(r.id)}','${esc(m.id)}')">Replace</button>`:""}
@@ -6000,7 +6038,7 @@ renderNav();renderDashboard();
               </td>
             </tr>`;
           }).join("")}
-          <tr><td colspan="3"><b>TEAM TOTAL</b></td><td><b>${reviewTotal.toFixed(2)}</b><div class="dim">cap ${teamCap.toFixed(2)}</div></td><td>—</td><td>${teamCapOk?'<span class="pill p-ok">Within cap</span>':'<span class="pill p-action">Over cap</span>'}</td><td>—</td></tr>
+          <tr><td colspan="3"><b>TEAM TOTAL</b></td><td><b>${liveFmt(reviewTotal)}</b><div class="dim">cap ${teamCap.toFixed(2)}</div></td><td>—</td><td>${teamCapOk?'<span class="pill p-ok">Within cap</span>':'<span class="pill p-action">Over cap</span>'}</td><td>—</td></tr>
           </tbody>
         </table></div>
       </div>
