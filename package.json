@@ -1,0 +1,7 @@
+{
+  "name": "aopl-admin-tests",
+  "private": true,
+  "description": "Local regression tests for the ALL-OUT Admin portal. No production access: every network call is intercepted.",
+  "scripts": { "test": "node --test tests/*.test.cjs" },
+  "devDependencies": { "playwright": "1.56.1" }
+}
