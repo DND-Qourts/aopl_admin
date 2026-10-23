@@ -1558,7 +1558,7 @@ function teamCap(t){return t.division==="DUPR 14"?14:16}
 function playerCap(t){return t.division==="DUPR 14"?3.99:4.49}
 function eligible(t){return teamTotal(t)<=teamCap(t) && t.players.every(p=>p.rating<=playerCap(t)) && t.players.filter(p=>p.gender==="Male").length===2 && t.players.filter(p=>p.gender==="Female").length===2}
 function holdsSlot(t){return ["Under Review","Action Required","Approved for Payment","Payment Submitted","Payment Overdue","Confirmed"].includes(t.status)}
-function capacity(div){const max=div==="DUPR 14"?16:12;const used=teams.filter(t=>t.division===div&&holdsSlot(t)).length;return {max,used,remaining:max-used}}
+function capacity(div){const max=div==="DUPR 14"?16:4;const used=teams.filter(t=>t.division===div&&holdsSlot(t)).length;return {max,used,remaining:max-used}}
 function navCount(key){
   if(key==="registrations")return teams.filter(t=>["Under Review","Action Required"].includes(t.status)).length;
   if(key==="payments")return teams.filter(t=>["Approved for Payment","Payment Submitted","Payment Overdue"].includes(t.status)).length;
@@ -1741,7 +1741,7 @@ function renderSettings(){
     <div class="grid2">
       <div class="card"><div class="cardhead"><div><h2>Registration</h2><p>Capacity and deadlines.</p></div></div>
         <div class="lineitem"><span>DUPR 14 capacity</span><b>16 teams</b></div>
-        <div class="lineitem"><span>DUPR 16 capacity</span><b>12 teams</b></div>
+        <div class="lineitem"><span>DUPR 16 capacity</span><b>4 teams</b></div>
         <div class="lineitem"><span>Registration closes</span><b>Oct 31 · 11:59 PM</b></div>
         <div class="lineitem"><span>Team fee</span><b>₱7,000</b></div>
       </div>
@@ -4044,7 +4044,7 @@ renderNav();renderDashboard();
             <div class="cardhead"><div><h2>Division Capacity</h2><p>Live availability used by submission and waitlist logic.</p></div></div>
             <div class="addreg-grid">
               <div class="fieldx"><label>DUPR 14 Capacity</label><input id="liveCfgD14Capacity" type="number" min="${Math.max(1,Number(d14.reserved||0))}" value="${Number(d14.team_capacity||16)}"></div>
-              <div class="fieldx"><label>DUPR 16 Capacity</label><input id="liveCfgD16Capacity" type="number" min="${Math.max(1,Number(d16.reserved||0))}" value="${Number(d16.team_capacity||12)}"></div>
+              <div class="fieldx"><label>DUPR 16 Capacity</label><input id="liveCfgD16Capacity" type="number" min="${Math.max(1,Number(d16.reserved||0))}" value="${Number(d16.team_capacity||4)}"></div>
             </div>
             <div class="toggleline"><div><b>DUPR 14 Open</b><div class="dim">Allow new submissions to this division.</div></div><label class="switch"><input id="liveCfgD14Open" type="checkbox" ${d14.is_open!==false?"checked":""}><span></span></label></div>
             <div class="toggleline"><div><b>DUPR 16 Open</b><div class="dim">Allow new submissions to this division.</div></div><label class="switch"><input id="liveCfgD16Open" type="checkbox" ${d16.is_open!==false?"checked":""}><span></span></label></div>

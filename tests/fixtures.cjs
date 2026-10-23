@@ -11,7 +11,7 @@ const snapshot = {
 };
 
 const D14 = { id: 'div14', code: 'D14', name: 'DUPR 14', team_rating_cap: 14, player_rating_cap: 3.99, nr_equivalent: 3.5, registration_fee: 7000, is_open: true, team_capacity: 16, reserved: 1, remaining: 15 };
-const D16 = { id: 'div16', code: 'D16', name: 'DUPR 16', team_rating_cap: 16, player_rating_cap: 4.49, nr_equivalent: 4, registration_fee: 7000, is_open: true, team_capacity: 12, reserved: 0, remaining: 12 };
+const D16 = { id: 'div16', code: 'D16', name: 'DUPR 16', team_rating_cap: 16, player_rating_cap: 4.49, nr_equivalent: 4, registration_fee: 7000, is_open: true, team_capacity: 4, reserved: 0, remaining: 4 };
 
 /**
  * One member. `rating` is the submitted rating, or 'NR'. `verified` is the verified rating (or true for a verified NR).
