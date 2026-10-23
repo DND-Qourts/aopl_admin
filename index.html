@@ -2436,6 +2436,8 @@ function saveEditRegistration(){
   closeEditRegistration();showToast("Registration updated",`${t.reference} changes were saved and audit logged.`);openRegistration(t.id);refreshCurrentView();
 }
 function escapeAttr(v){return String(v??"").replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+// Global HTML escaper for the prototype layer; the live layer defines its own esc() inside its closure.
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 
 /* Player replacement */
 function openReplacePlayer(id){
@@ -2677,7 +2679,7 @@ function renderAdminUsers(){
   adminUsersView.innerHTML=`
     <div class="eyebrow">ACCESS CONTROL</div><h1>Admin Users</h1><div class="sub">Role-based access separates registration review, finance actions, administration and read-only visibility.</div>
     <div class="toolbar"><div></div><button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button></div>
-    <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card"><div class="user-card-head"><div><h3>${u.name}</h3><div class="dim">${u.email}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div><div class="lineitem"><span>Role</span><b>${u.role}</b></div><div class="actionbar right"><button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>${u.role!=="owner"?`<button class="mini-btn" onclick="toggleAdminUser(${u.id})">${u.active?"Disable":"Enable"}</button>`:""}</div></div>`).join("")}</div>
+    <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card"><div class="user-card-head"><div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div><div class="lineitem"><span>Role</span><b>${u.role}</b></div><div class="actionbar right"><button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>${u.role!=="owner"?`<button class="mini-btn" onclick="toggleAdminUser(${u.id})">${u.active?"Disable":"Enable"}</button>`:""}</div></div>`).join("")}</div>
     <div class="section"><div class="section-head"><div><h2>Role boundaries</h2><p>Recommended production permission model.</p></div></div><div class="role-grid">
       <div class="role-card"><b>Owner</b><small>Full access, settings and admin-user management.</small></div>
       <div class="role-card"><b>Admin</b><small>Registration operations, roster changes, waitlist and communications.</small></div>
@@ -2974,7 +2976,7 @@ function refreshRoleSelects(){
   const addUserSelect=document.getElementById("auRole");
   if(addUserSelect){
     const current=addUserSelect.value;
-    addUserSelect.innerHTML=roleDefinitions.filter(r=>r.key!=="owner").map(r=>`<option value="${r.key}">${r.name}</option>`).join("");
+    addUserSelect.innerHTML=roleDefinitions.filter(r=>r.key!=="owner").map(r=>`<option value="${escapeAttr(r.key)}">${escapeAttr(r.name)}</option>`).join("");
     if([...addUserSelect.options].some(o=>o.value===current))addUserSelect.value=current;
   }
 }
@@ -2993,7 +2995,7 @@ function renderRoleManager(){
             <span class="audit-chip">${r.builtIn?"Built-in":"Custom"}</span>
           </div>
           <div class="permission-chips">
-            ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${permissionCatalog.find(x=>x.key===p)?.label||p}</span>`).join("")}
+            ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${esc(permissionCatalog.find(x=>x.key===p)?.label||p)}</span>`).join("")}
             ${r.permissions.length>5?`<span class="permission-chip">+${r.permissions.length-5} more</span>`:""}
           </div>
           <div class="role-actions">
@@ -3103,8 +3105,8 @@ function renderAdminUsers(){
     <div class="eyebrow">ACCESS CONTROL</div><h1>Admin Users</h1><div class="sub">Assign built-in or custom roles based on the exact responsibilities each admin needs.</div>
     <div class="toolbar"><div></div><button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button></div>
     <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card">
-      <div class="user-card-head"><div><h3>${u.name}</h3><div class="dim">${u.email}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div>
-      <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+      <div class="user-card-head"><div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div>
+      <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
       <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
       <div class="actionbar right">
         <button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>
@@ -3158,7 +3160,7 @@ function openChangeRoleModal(userId){
   crCurrentRole.textContent=roleDisplayName(user.role);
 
   const assignable=roleDefinitions.filter(r=>r.key!=="owner");
-  crNewRole.innerHTML=assignable.map(r=>`<option value="${r.key}" ${r.key===user.role?"selected":""}>${r.name}</option>`).join("");
+  crNewRole.innerHTML=assignable.map(r=>`<option value="${escapeAttr(r.key)}" ${r.key===user.role?"selected":""}>${escapeAttr(r.name)}</option>`).join("");
 
   updateChangeRolePreview();
   changeRoleModal.classList.add("open");
@@ -3181,7 +3183,7 @@ function updateChangeRolePreview(){
   crRoleDescription.textContent=role.description||"";
   crPermissionPreview.innerHTML=role.permissions.map(key=>{
     const p=permissionCatalog.find(x=>x.key===key);
-    return `<span class="permission-chip">${p?.label||key}</span>`;
+    return `<span class="permission-chip">${escapeAttr(p?.label||key)}</span>`;
   }).join("");
 
   const user=adminUsersData.find(u=>u.id===changingRoleUserId);
@@ -3267,7 +3269,7 @@ function openEditAdminUser(id){
     ? roleDefinitions.filter(r=>r.key==="owner")
     : roleDefinitions.filter(r=>r.key!=="owner");
 
-  euRole.innerHTML=roles.map(r=>`<option value="${r.key}" ${r.key===u.role?"selected":""}>${r.name}</option>`).join("");
+  euRole.innerHTML=roles.map(r=>`<option value="${escapeAttr(r.key)}" ${r.key===u.role?"selected":""}>${escapeAttr(r.name)}</option>`).join("");
   euRole.disabled=u.role==="owner";
   euStatus.disabled=u.role==="owner";
   euErrors.classList.remove("show");
@@ -3357,7 +3359,7 @@ function renderAdminUsers(){
         </div>
         <span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span>
       </div>
-      <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+      <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
       <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
       <div class="actionbar right">
         <button class="mini-btn" onclick="openEditAdminUser(${u.id})">Edit Details</button>
@@ -4244,7 +4246,7 @@ renderNav();renderDashboard();
       <h1>Admin Operations</h1>
       <div class="sub">Authentication and permissions are connected to the production Supabase backend.</div>
       <div class="cards" style="margin-top:18px">
-        <div class="metric production-live-card"><label>Signed In As</label><strong style="font-size:18px">${me.email||"—"}</strong><small>${me.roleName||me.roleKey||"Admin"}</small></div>
+        <div class="metric production-live-card"><label>Signed In As</label><strong style="font-size:18px">${esc(me.email||"—")}</strong><small>${esc(me.roleName||me.roleKey||"Admin")}</small></div>
         <div class="metric production-live-card"><label>Your Permissions</label><strong>${me.permissions?.length||0}</strong><small>Server-enforced permission keys</small></div>
         <div class="metric production-live-card"><label>Active Admins</label><strong>${summary.activeAdmins??"—"}</strong><small>Live database count</small></div>
         <div class="metric production-live-card"><label>Roles</label><strong>${summary.roles??"—"}</strong><small>Active database roles</small></div>
@@ -4254,7 +4256,7 @@ renderNav();renderDashboard();
         <p>Your portal access is filtered by real database permissions. Registration review, DUPR verification, Action Required correction control, roster governance, payment operations, Confirmed Teams, the waitlist queue, operational reports, Communications and Launch Control settings are connected to the production backend. The remaining step is the final production audit.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${hasPermission("registrations_view")?`<button class="btn primary" onclick="openView('registrations')">Open Registrations</button>`:""}
-          ${canManageAccess()?`<button class="btn" onclick="openView('adminusers')">Open Admin Users</button>`:`<span class="user-live-tag">${me.roleName||me.roleKey||"Admin"} access enforced</span>`}
+          ${canManageAccess()?`<button class="btn" onclick="openView('adminusers')">Open Admin Users</button>`:`<span class="user-live-tag">${esc(me.roleName||me.roleKey||"Admin")} access enforced</span>`}
         </div>
       </div>`;
   }
@@ -6465,19 +6467,19 @@ renderNav();renderDashboard();
           const assigned=canManageUsers()?adminUsersData.filter(u=>u.role===r.key && u.active).length:null;
           const assignmentText=assigned===null?"Assignments restricted":`${assigned} active user${assigned===1?"":"s"} assigned`;
           const roleAction=!allowRoleWrites
-            ? `<button class="mini-btn" onclick="viewRole('${r.key}')">View Permissions</button>`
+            ? `<button class="mini-btn" data-role-action="view" data-role-key="${esc(r.key)}">View Permissions</button>`
             : r.key==="owner"
-              ? `<button class="mini-btn" onclick="viewRole('${r.key}')">View Protected Permissions</button>`
+              ? `<button class="mini-btn" data-role-action="view" data-role-key="${esc(r.key)}">View Protected Permissions</button>`
               : r.builtIn
-                ? `<button class="mini-btn" onclick="openRoleModal('${r.key}')">Manage Permissions</button>`
-                : `<button class="mini-btn" onclick="openRoleModal('${r.key}')">Edit Role</button><button class="mini-btn" onclick="deleteRole('${r.key}')">Delete</button>`;
+                ? `<button class="mini-btn" data-role-action="edit" data-role-key="${esc(r.key)}">Manage Permissions</button>`
+                : `<button class="mini-btn" data-role-action="edit" data-role-key="${esc(r.key)}">Edit Role</button><button class="mini-btn" data-role-action="delete" data-role-key="${esc(r.key)}">Delete</button>`;
           return `<div class="role-manager-card ${r.builtIn?"":"custom"}">
             <div class="role-manager-head">
-              <div><h4>${r.name}</h4><small>${r.description}</small><small>${assignmentText}</small></div>
+              <div><h4>${esc(r.name)}</h4><small>${esc(r.description)}</small><small>${assignmentText}</small></div>
               <span class="audit-chip">${r.key==="owner"?"Protected":r.builtIn?"Built-in":"Custom"}</span>
             </div>
             <div class="permission-chips">
-              ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${permissionCatalog.find(x=>x.key===p)?.label||p}</span>`).join("")}
+              ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${esc(permissionCatalog.find(x=>x.key===p)?.label||p)}</span>`).join("")}
               ${r.permissions.length>5?`<span class="permission-chip">+${r.permissions.length-5} more</span>`:""}
             </div>
             <div class="role-actions">${roleAction}</div>
@@ -6487,6 +6489,16 @@ renderNav();renderDashboard();
     </div>`;
   };
 
+
+  // Role buttons carry the role key in a data attribute, never inside inline JavaScript.
+  document.addEventListener("click",e=>{
+    const btn=e.target.closest?.("[data-role-action]");
+    if(!btn) return;
+    const key=btn.dataset.roleKey;
+    if(btn.dataset.roleAction==="view") window.viewRole(key);
+    else if(btn.dataset.roleAction==="edit") window.openRoleModal(key);
+    else if(btn.dataset.roleAction==="delete") window.deleteRole(key);
+  });
 
   window.renderAdminUsers = function(){
     if(!canManageAccess()){
@@ -6502,12 +6514,12 @@ renderNav();renderDashboard();
         ${canManageUsers()?`<button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button>`:""}</div>
       ${canManageUsers()?`<div class="user-grid">${adminUsersData.map(u=>`<div class="user-card">
         <div class="user-card-head">
-          <div><h3>${u.name}</h3><div class="dim">${u.email}</div>
-            <div class="user-meta">${u.title?`<span class="audit-chip">${u.title}</span>`:""}${u.mobile?`<span class="audit-chip">${u.mobile}</span>`:""}</div>
+          <div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div>
+            <div class="user-meta">${u.title?`<span class="audit-chip">${esc(u.title)}</span>`:""}${u.mobile?`<span class="audit-chip">${esc(u.mobile)}</span>`:""}</div>
           </div>
           <span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span>
         </div>
-        <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+        <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
         <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
         <div class="actionbar right">
           <button class="mini-btn" onclick="openEditAdminUser(${u.id})">Edit Details</button>
@@ -6624,8 +6636,8 @@ renderNav();renderDashboard();
       : "Your current access allows you to view, but not modify, these permissions.";
     rolePermissionGrid.innerHTML=permissionCatalog.map(p=>`
       <label class="permission-option">
-        <input type="checkbox" data-permission="${p.key}" disabled ${role.permissions.includes(p.key)?"checked":""}>
-        <span><b>${p.label}</b><small>${p.desc}</small></span>
+        <input type="checkbox" data-permission="${esc(p.key)}" disabled ${role.permissions.includes(p.key)?"checked":""}>
+        <span><b>${esc(p.label)}</b><small>${esc(p.desc)}</small></span>
       </label>`).join("");
     if(saveButton)saveButton.style.display="none";
     if(cancelButton)cancelButton.textContent="Close";
@@ -6681,8 +6693,8 @@ renderNav();renderDashboard();
 
     rolePermissionGrid.innerHTML=permissionCatalog.map(p=>`
       <label class="permission-option">
-        <input type="checkbox" data-permission="${p.key}" ${role?.permissions.includes(p.key)?"checked":""}>
-        <span><b>${p.label}</b><small>${p.desc}</small></span>
+        <input type="checkbox" data-permission="${esc(p.key)}" ${role?.permissions.includes(p.key)?"checked":""}>
+        <span><b>${esc(p.label)}</b><small>${esc(p.desc)}</small></span>
       </label>`).join("");
 
     setRoleStatus(builtIn?"Ready · changes autosave":"","");
