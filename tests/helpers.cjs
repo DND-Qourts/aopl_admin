@@ -45,10 +45,17 @@ async function openAdmin(browser, baseUrl, handlers, pagePath = '/index.html') {
   const blocked = [];
   const calls = [];
   page.on('pageerror', e => calls.push({ pageerror: String(e) }));
-  await page.route('**/*', route => {
+  await page.route('**/*', async route => {
     const url = new URL(route.request().url());
-    if (url.hostname === '127.0.0.1') return route.continue();
     if (/supabase-js/.test(url.pathname)) return route.fulfill({ contentType: 'text/javascript', body: FAKE_SUPABASE });
+    if (url.hostname === '127.0.0.1' && url.pathname.endsWith('.html')) {
+      // The fake client cannot match the vendored file's integrity hash, so drop that attribute in tests only.
+      // pinned-scripts.test.cjs checks the real file against the hash.
+      const res = await route.fetch();
+      const body = (await res.text()).replace(/(<script[^>]*supabase-js[^>]*?)\s+integrity="[^"]*"/g, '$1');
+      return route.fulfill({ response: res, body });
+    }
+    if (url.hostname === '127.0.0.1') return route.continue();
     if (url.pathname.endsWith('/functions/v1/admin-access')) {
       const { action, ...payload } = JSON.parse(route.request().postData() || '{}');
       calls.push({ action, payload });
