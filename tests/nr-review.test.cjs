@@ -174,3 +174,53 @@ test('exports show NR as NR, never as a blank or zero rating', async () => {
   assert.match((await exp('confirmed'))[1], /"TST001","NR","M"$/);
   await context.close();
 });
+
+test('moving a team with an NR player warns that NR must be confirmed again, and uses the destination equivalent', async () => {
+  const reg = team(['NR', '3.00', '3.00', '3.00'], [true, '3.00', '3.00', '3.00']);
+  const { page, calls, context } = await openDrawer(reg, {
+    change_registration_division: { result: { targetDivisionName: 'DUPR 16', status: 'under_review', nrReverificationRequired: 1 } }
+  });
+  await page.evaluate(() => openLiveDivisionChange('reg1'));
+  await page.selectOption('#liveDivisionTarget', 'div16');
+  assert.match(await page.locator('#liveDivisionNrNote').innerText(), /1 NR player will go back to "needs check"/);
+  assert.match(await page.locator('#liveDivisionResult').innerText(), /Under Review/);
+  assert.ok(await page.locator('#liveDivisionChangeConfirm').isEnabled());
+  await context.close();
+});
+
+test('a team without NR players sees no NR warning when moving', async () => {
+  const { page, context } = await openDrawer(team(['3.00', '3.00', '3.00', '3.00'], ['3.00', '3.00', '3.00', '3.00']));
+  await page.evaluate(() => openLiveDivisionChange('reg1'));
+  await page.selectOption('#liveDivisionTarget', 'div16');
+  assert.ok(!(await page.locator('#liveDivisionNrNote').isVisible()));
+  await context.close();
+});
+
+test('shirt size 2XS is offered when replacing a player and is sent as entered', async () => {
+  const { page, calls, context } = await openDrawer(team(['3.50', '3.50', '3.50', '3.50']), { replace_roster_player: { result: {} } });
+  await page.evaluate(() => openLiveRosterReplacement('reg1', 'm2'));
+  const options = await page.locator('#liveRosterReplacementShirt option').allInnerTexts();
+  assert.deepStrictEqual(options, ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']);
+  await page.fill('#liveRosterReplacementName', 'New Player');
+  await page.fill('#liveRosterReplacementEmail', 'new@example.test');
+  await page.fill('#liveRosterReplacementMobile', '09171234567');
+  await page.fill('#liveRosterReplacementDuprId', 'NEW001');
+  await page.fill('#liveRosterReplacementDupr', '3.25');
+  await page.selectOption('#liveRosterReplacementShirt', '2XS');
+  await page.fill('#liveRosterReplacementReason', 'Injury replacement');
+  await page.click('#liveRosterReplacementConfirm');
+  await page.waitForFunction(() => !document.querySelector('#liveRosterReplacementModal.open'));
+  assert.strictEqual(calls.find(c => c.action === 'replace_roster_player').payload.shirtSize, '2XS');
+  await context.close();
+});
+
+test('the shirt-size report counts 2XS', async () => {
+  const reg = team(['3.50', '3.50', '3.50', '3.50']);
+  reg.players[1].shirt_size = '2XS';
+  const { page, context } = await openDrawer(reg);
+  await page.evaluate(() => openView('reports'));
+  await page.waitForSelector('.report-card');
+  const card = await page.locator('.report-card', { hasText: 'Shirt Sizes' }).innerText();
+  assert.match(card, /2XS\s*1/);
+  await context.close();
+});

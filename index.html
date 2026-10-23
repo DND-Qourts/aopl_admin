@@ -775,7 +775,7 @@ tbody tr[data-id]:hover{background:#171b20}
         <div class="fieldx"><label>Mobile</label><input id="rpMobile"></div>
         <div class="fieldx"><label>DUPR ID <span class="req">*</span></label><input id="rpDuprId"></div>
         <div class="fieldx"><label>Verified DUPR <span class="req">*</span></label><input id="rpRating" type="number" min="0" max="9" step="0.01"></div>
-        <div class="fieldx"><label>Shirt Size</label><select id="rpShirt"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></div>
+        <div class="fieldx"><label>Shirt Size</label><select id="rpShirt"><option>2XS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></div>
         <div class="fieldx addreg-full"><label>Admin Notes</label><textarea id="rpNotes"></textarea></div>
       </div>
     </div>
@@ -1104,6 +1104,7 @@ tbody tr[data-id]:hover{background:#171b20}
     <div class="note" style="margin-top:12px">
       The registration reference remains unchanged so existing Track, OTP and payment links do not break. The <b>Division</b> field becomes the authoritative current division. If the destination is full, the team joins the <b>back of that division's waitlist</b> with a fresh queue priority.
     </div>
+    <div id="liveDivisionNrNote" class="note" style="display:none;margin-top:12px"></div>
     <div id="liveDivisionChangeError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveDivisionChangeCancel" type="button">Cancel</button>
@@ -1223,7 +1224,7 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="fieldx"><label>DUPR ID <span class="req">*</span></label><input id="liveRosterReplacementDuprId" maxlength="30"></div>
       <div class="fieldx"><label>Submitted DUPR <span class="req">*</span></label><input id="liveRosterReplacementDupr" type="text" maxlength="5" autocomplete="off" inputmode="decimal" placeholder="0.00"><label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600"><input id="liveRosterReplacementNr" type="checkbox" style="width:auto"> NR (no DUPR rating; the DUPR ID is still required)</label></div>
       <div class="fieldx"><label>Shirt Size <span class="req">*</span></label>
-        <select id="liveRosterReplacementShirt"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
+        <select id="liveRosterReplacementShirt"><option>2XS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
       </div>
     </div>
     <div class="fieldx" style="margin-top:10px">
@@ -1931,7 +1932,7 @@ function renderAdminRoster(){
         </div>
         <div class="fieldx">
           <label>Shirt Size</label>
-          <select id="arShirt${i}"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
+          <select id="arShirt${i}"><option>2XS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
         </div>
       </div>
     </div>
@@ -2413,7 +2414,7 @@ function openEditRegistration(id){
         <div class="fieldx"><label>Mobile</label><input id="erMobile${i}" value="${escapeAttr(p.mobile||"")}"></div>
         <div class="fieldx"><label>DUPR ID</label><input id="erDuprId${i}" value="${escapeAttr(p.duprId||"")}" ${locked?"disabled":""}></div>
         <div class="fieldx"><label>DUPR Rating</label><input id="erRating${i}" type="number" step="0.01" value="${Number(p.rating||0)||""}" ${locked?"disabled":""}></div>
-        <div class="fieldx"><label>Shirt Size</label><select id="erShirt${i}">${["XS","S","M","L","XL","2XL","3XL"].map(s=>`<option ${p.shirt===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div class="fieldx"><label>Shirt Size</label><select id="erShirt${i}">${["2XS","XS","S","M","L","XL","2XL","3XL"].map(s=>`<option ${p.shirt===s?"selected":""}>${s}</option>`).join("")}</select></div>
       </div>
     </div>`).join("");
   erErrors.classList.remove("show");editRegistrationModal.classList.add("open");
@@ -2659,7 +2660,7 @@ function renderReports(){
       <div class="report-card"><h3>Confirmed Team Roster</h3><div class="lineitem"><span>Confirmed teams</span><b>${active.filter(t=>t.status==="Confirmed").length}</b></div><div class="lineitem"><span>Confirmed players</span><b>${active.filter(t=>t.status==="Confirmed").length*4}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('confirmed')">Export Confirmed Roster</button></div></div>
       <div class="report-card"><h3>Outstanding Actions</h3><div class="lineitem"><span>Under Review</span><b>${active.filter(t=>t.status==="Under Review").length}</b></div><div class="lineitem"><span>Action Required</span><b>${active.filter(t=>t.status==="Action Required").length}</b></div><div class="lineitem"><span>Payment Overdue</span><b>${active.filter(t=>t.status==="Payment Overdue").length}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('outstanding')">Export Outstanding</button></div></div>
       <div class="report-card"><h3>DUPR & Eligibility</h3><div class="lineitem"><span>Players</span><b>${active.reduce((s,t)=>s+t.players.length,0)}</b></div><div class="lineitem"><span>Verified DUPR</span><b>${active.reduce((s,t)=>s+t.players.filter(p=>p.verified).length,0)}</b></div><div class="lineitem"><span>Hard warnings</span><b>${active.reduce((s,t)=>s+integrityWarnings(t).filter(w=>w.hard).length,0)}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('dupr')">Export DUPR Report</button></div></div>
-      <div class="report-card"><h3>Shirt Sizes</h3>${["XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${active.reduce((s,t)=>s+t.players.filter(p=>p.shirt===sz).length,0)}</b></div>`).join("")}<div class="report-actions"><button class="mini-btn" onclick="exportReport('shirts')">Export Shirt Report</button></div></div>
+      <div class="report-card"><h3>Shirt Sizes</h3>${["2XS","XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${active.reduce((s,t)=>s+t.players.filter(p=>p.shirt===sz).length,0)}</b></div>`).join("")}<div class="report-actions"><button class="mini-btn" onclick="exportReport('shirts')">Export Shirt Report</button></div></div>
       <div class="report-card"><h3>Registration Source</h3><div class="lineitem"><span>Player Portal</span><b>${active.filter(t=>t.source==="Player Portal").length}</b></div><div class="lineitem"><span>Admin Registration</span><b>${active.filter(t=>t.source==="Admin Registration").length}</b></div><div class="lineitem"><span>Admin Drafts</span><b>${active.filter(t=>t.status==="Draft").length}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('contacts')">Export Contact Directory</button></div></div>
     </div>`;
 }
@@ -2788,7 +2789,7 @@ function filteredShirtRows(){
   );
 }
 function shirtSizeSummary(rows){
-  const sizes=["XS","S","M","L","XL","2XL","3XL"],out={};
+  const sizes=["2XS","XS","S","M","L","XL","2XL","3XL"],out={};
   sizes.forEach(s=>out[s]={
     total:rows.filter(r=>r.size===s).length,
     d14:rows.filter(r=>r.size===s&&r.division==="DUPR 14").length,
@@ -2826,7 +2827,7 @@ function renderShirtReport(rebuildFilters=true){
   const confirmedCount=allScopeRows.filter(r=>r.status==="Confirmed").length;
   const pendingCount=allScopeRows.filter(r=>!["Confirmed","Cancelled","Draft"].includes(r.status)).length;
   const statusOptions=[...new Set(shirtRows().map(r=>r.status))].sort();
-  const sizes=["XS","S","M","L","XL","2XL","3XL"];
+  const sizes=["2XS","XS","S","M","L","XL","2XL","3XL"];
 
   shirtReportContent.innerHTML=`
     <div class="shirt-kpis">
@@ -2887,7 +2888,7 @@ function renderShirtReport(rebuildFilters=true){
     </table></div>`;
 }
 function exportShirtReport(type){
-  const sizes=["XS","S","M","L","XL","2XL","3XL"];
+  const sizes=["2XS","XS","S","M","L","XL","2XL","3XL"];
   let rows=[],header=[],filename="";
   if(type==="detailed"){
     const data=filteredShirtRows();
@@ -3981,7 +3982,7 @@ renderNav();renderDashboard();
           <div class="report-card"><h3>Confirmed Roster</h3><div class="lineitem"><span>Confirmed teams</span><b>${confirmed.length}</b></div><div class="lineitem"><span>Confirmed players</span><b>${confirmed.reduce((s,r)=>s+(r.players||[]).filter(m=>m.active_entry!==false).length,0)}</b></div><div class="report-actions">${btn("confirmed")}</div></div>
           <div class="report-card"><h3>Outstanding Actions</h3><div class="lineitem"><span>Under Review</span><b>${active.filter(r=>r.status==="under_review").length}</b></div><div class="lineitem"><span>Action Required</span><b>${active.filter(r=>r.status==="action_required").length}</b></div><div class="lineitem"><span>Waitlisted</span><b>${active.filter(r=>r.status==="waitlisted").length}</b></div><div class="lineitem"><span>Payment Overdue</span><b>${active.filter(r=>r.status==="payment_overdue").length}</b></div><div class="report-actions">${btn("outstanding")}</div></div>
           <div class="report-card"><h3>DUPR & Eligibility</h3><div class="lineitem"><span>Active players</span><b>${players}</b></div><div class="lineitem"><span>Verified DUPR</span><b>${verifiedDupr}</b></div><div class="lineitem"><span>Needs review</span><b>${Math.max(0,players-verifiedDupr)}</b></div><div class="report-actions">${btn("dupr")}</div></div>
-          <div class="report-card"><h3>Shirt Sizes</h3>${["XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${shirtCounts[sz]||0}</b></div>`).join("")}<div class="report-actions">${btn("shirts")}</div></div>
+          <div class="report-card"><h3>Shirt Sizes</h3>${["2XS","XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${shirtCounts[sz]||0}</b></div>`).join("")}<div class="report-actions">${btn("shirts")}</div></div>
           <div class="report-card"><h3>Contact Directory</h3><div class="lineitem"><span>Active teams</span><b>${active.length}</b></div><div class="lineitem"><span>Active player contacts</span><b>${players}</b></div><div class="report-actions">${btn("contacts")}</div></div>
         </div>`;
     }catch(err){reportsView.innerHTML=`<div class="eyebrow">REPORTING & RECONCILIATION · LIVE</div><h1>Reports</h1><div class="card"><h2>Could not load Reports</h2><p class="dim">${esc(err.message||"REPORTS_LOAD_FAILED")}</p><button class="btn primary" onclick="renderLiveReports()">Try Again</button></div>`}
@@ -5036,6 +5037,12 @@ renderNav();renderDashboard();
     liveDivisionResult.textContent=eligible?result:"Blocked · eligibility fails destination caps";
     liveDivisionResult.style.color=eligible?"":"var(--danger)";
     liveDivisionChangeConfirm.disabled=!eligible;
+    const nrCount=ctx.members.filter(m=>m.is_nr===true).length;
+    const nrNote=document.getElementById("liveDivisionNrNote");
+    if(nrNote){
+      nrNote.style.display=nrCount?"block":"none";
+      nrNote.textContent=nrCount?`${nrCount} NR player${nrCount===1?"":"s"} will go back to "needs check" after the move and must be confirmed again before the team can be approved for payment.`:"";
+    }
     if(!eligible){
       const reasons=[];
       if(!allVerified) reasons.push("all four DUPRs must be verified");
@@ -5112,7 +5119,7 @@ renderNav();renderDashboard();
       });
       closeLiveDivisionChange();
       const moved=result.result||{};
-      showToast("Division changed",`${moved.targetDivisionName||"Destination division"} · ${String(moved.status||"").replaceAll("_"," ")}.`);
+      showToast("Division changed",`${moved.targetDivisionName||"Destination division"} · ${String(moved.status||"").replaceAll("_"," ")}.${Number(moved.nrReverificationRequired)>0?" NR players must be confirmed again.":""}`);
       await loadLiveRegistrations(true);
       renderNav();
       openLiveRegistration(ctx.registrationId);
