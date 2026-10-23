@@ -1340,9 +1340,11 @@ tbody tr[data-id]:hover{background:#171b20}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" id="livePaymentVerifyProof" type="button">View Payment Proof</button>
     </div>
+    <div class="fieldx" id="livePaymentRejectField" style="margin-top:12px;display:none"><label>Reason if rejecting (sent to the team)</label><textarea id="livePaymentRejectReason" maxlength="500" placeholder="For example: the reference number does not match the proof."></textarea></div>
     <div id="livePaymentVerifyError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="livePaymentVerifyCancel" type="button">Cancel</button>
+      <button class="btn danger" id="livePaymentRejectConfirm" type="button" style="display:none">Reject Proof → Ask for Correction</button>
       <button class="btn success" id="livePaymentVerifyConfirm" type="button">Verify Payment → Confirm Team</button>
     </div>
   </div>
@@ -5630,6 +5632,9 @@ renderNav();renderDashboard();
   const livePaymentVerifyReference=document.getElementById("livePaymentVerifyReference");
   const livePaymentVerifySubmitted=document.getElementById("livePaymentVerifySubmitted");
   const livePaymentVerifyError=document.getElementById("livePaymentVerifyError");
+  const livePaymentRejectField=document.getElementById("livePaymentRejectField");
+  const livePaymentRejectReason=document.getElementById("livePaymentRejectReason");
+  const livePaymentRejectConfirm=document.getElementById("livePaymentRejectConfirm");
 
   function closeLivePaymentVerify(){
     livePaymentVerifyModal?.classList.remove("open");
@@ -5637,6 +5642,8 @@ renderNav();renderDashboard();
     if(livePaymentVerifyError){ livePaymentVerifyError.style.display="none"; livePaymentVerifyError.textContent=""; }
     if(livePaymentVerifyConfirm){ livePaymentVerifyConfirm.disabled=false; livePaymentVerifyConfirm.textContent="Verify Payment → Confirm Team"; }
     if(livePaymentVerifyProof){ livePaymentVerifyProof.disabled=false; livePaymentVerifyProof.textContent="View Payment Proof"; }
+    if(livePaymentRejectReason){ livePaymentRejectReason.value=""; }
+    if(livePaymentRejectConfirm){ livePaymentRejectConfirm.disabled=false; livePaymentRejectConfirm.textContent="Reject Proof → Ask for Correction"; }
   }
 
   window.openLivePaymentProof=async function(paymentId){
@@ -5707,6 +5714,8 @@ renderNav();renderDashboard();
     livePaymentVerifyProof.disabled=!payment.proof_path;
     livePaymentVerifyProof.textContent=payment.proof_path?"View Payment Proof":"Proof unavailable";
     livePaymentVerifyConfirm.style.display=hasPermission("payments_verify")?"inline-flex":"none";
+    livePaymentRejectConfirm.style.display=hasPermission("payments_verify")?"inline-flex":"none";
+    livePaymentRejectField.style.display=hasPermission("payments_verify")?"block":"none";
     livePaymentVerifyModal.classList.add("open");
   };
 
@@ -5755,6 +5764,51 @@ renderNav();renderDashboard();
   livePaymentVerifyClose?.addEventListener("click",closeLivePaymentVerify);
   livePaymentVerifyCancel?.addEventListener("click",closeLivePaymentVerify);
   livePaymentVerifyConfirm?.addEventListener("click",submitLivePaymentVerification);
+  livePaymentRejectConfirm?.addEventListener("click",submitLivePaymentRejection);
+
+  async function submitLivePaymentRejection(){
+    if(!livePaymentVerifyContext || !hasPermission("payments_verify")) return;
+    const ctx={...livePaymentVerifyContext};
+    const reason=String(livePaymentRejectReason.value||"").trim();
+    if(reason.length<3){
+      livePaymentVerifyError.textContent="Enter the reason the team will see before rejecting the proof.";
+      livePaymentVerifyError.style.display="block";
+      livePaymentRejectReason.focus();
+      return;
+    }
+    livePaymentRejectConfirm.disabled=true;
+    livePaymentRejectConfirm.textContent="Rejecting…";
+    livePaymentVerifyError.style.display="none";
+    try{
+      const data=await api("reject_payment",{paymentId:ctx.paymentId,reason});
+      closeLivePaymentVerify();
+      const mailStatus=data.result?.notification?.status;
+      const mailNote=mailStatus==="failed"||mailStatus==="log_failed"?" The email to the team needs attention.":"";
+      showToast(
+        "Payment proof rejected",
+        data.result?.canResubmit
+          ? `${data.result?.teamName||"The team"} can submit a corrected proof until the deadline.${mailNote}`
+          : `The deadline has passed, so ${data.result?.teamName||"the team"} is now Payment Overdue. Extend or cancel from the overdue decision.${mailNote}`
+      );
+      liveAuditSnapshot=null;
+      liveAuditLoadedAt=0;
+      await loadLiveRegistrations(true);
+      renderNav();
+      openLiveRegistration(ctx.registrationId);
+    }catch(err){
+      const code=String(err?.message||"PAYMENT_REJECTION_FAILED");
+      const friendly={
+        ADMIN_FORBIDDEN:"Your role cannot reject payments.",
+        PAYMENT_NOT_FOUND:"The payment record could not be found.",
+        PAYMENT_NOT_SUBMITTED:"This payment is no longer waiting for verification.",
+        REJECTION_REASON_REQUIRED:"Enter the reason the team will see before rejecting the proof."
+      }[code]||code;
+      livePaymentVerifyError.textContent=friendly;
+      livePaymentVerifyError.style.display="block";
+      livePaymentRejectConfirm.disabled=false;
+      livePaymentRejectConfirm.textContent="Reject Proof → Ask for Correction";
+    }
+  }
   livePaymentVerifyProof?.addEventListener("click",()=>{
     if(livePaymentVerifyContext?.paymentId) openLivePaymentProof(livePaymentVerifyContext.paymentId);
   });
