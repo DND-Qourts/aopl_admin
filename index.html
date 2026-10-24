@@ -775,7 +775,7 @@ tbody tr[data-id]:hover{background:#171b20}
         <div class="fieldx"><label>Mobile</label><input id="rpMobile"></div>
         <div class="fieldx"><label>DUPR ID <span class="req">*</span></label><input id="rpDuprId"></div>
         <div class="fieldx"><label>Verified DUPR <span class="req">*</span></label><input id="rpRating" type="number" min="0" max="9" step="0.01"></div>
-        <div class="fieldx"><label>Shirt Size</label><select id="rpShirt"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></div>
+        <div class="fieldx"><label>Shirt Size</label><select id="rpShirt"><option>2XS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></div>
         <div class="fieldx addreg-full"><label>Admin Notes</label><textarea id="rpNotes"></textarea></div>
       </div>
     </div>
@@ -1055,10 +1055,11 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="summary-item"><label>Submitted</label><b id="liveDuprSubmitted">—</b></div>
       <div class="summary-item"><label>Player Cap</label><b id="liveDuprCap">—</b></div>
     </div>
-    <div class="fieldx">
+    <div class="fieldx" id="liveDuprRatingField">
       <label for="liveDuprVerifiedInput">Verified DUPR rating</label>
-      <input id="liveDuprVerifiedInput" type="number" min="0" max="9" step="0.01" inputmode="decimal">
+      <input id="liveDuprVerifiedInput" type="text" maxlength="5" autocomplete="off" inputmode="decimal" placeholder="0.00">
     </div>
+    <div class="note" id="liveDuprNrNote" style="display:none;margin-top:12px"></div>
     <div class="note" style="margin-top:12px">This writes the verified rating to production and creates an audit-log entry. It does not approve the team for payment or lock eligibility yet.</div>
     <div id="liveDuprReopenWrap" class="fieldx" style="display:none;margin-top:12px">
       <label for="liveDuprReopenReason">Reason for marking Needs Review</label>
@@ -1103,6 +1104,7 @@ tbody tr[data-id]:hover{background:#171b20}
     <div class="note" style="margin-top:12px">
       The registration reference remains unchanged so existing Track, OTP and payment links do not break. The <b>Division</b> field becomes the authoritative current division. If the destination is full, the team joins the <b>back of that division's waitlist</b> with a fresh queue priority.
     </div>
+    <div id="liveDivisionNrNote" class="note" style="display:none;margin-top:12px"></div>
     <div id="liveDivisionChangeError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveDivisionChangeCancel" type="button">Cancel</button>
@@ -1114,7 +1116,7 @@ tbody tr[data-id]:hover{background:#171b20}
 <div class="modal" id="liveWaitlistPromotionModal">
   <div class="modal-card">
     <div class="modal-head">
-      <div><h3>Promote Waitlisted Team</h3><p>Reserve the newly available division slot and start this team's 24-hour payment window.</p></div>
+      <div><h3>Promote Waitlisted Team</h3><p>Reserve the newly available division slot and open its payment request. There is no payment deadline.</p></div>
       <button class="x" id="liveWaitlistPromotionClose" type="button">×</button>
     </div>
     <div class="summary-grid" style="margin:0 0 14px">
@@ -1125,15 +1127,15 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="summary-item"><label>Available Slots</label><b id="liveWaitlistPromotionSlots">—</b></div>
       <div class="summary-item"><label>Locked Team DUPR</label><b id="liveWaitlistPromotionDupr">—</b></div>
       <div class="summary-item"><label>Registration Fee</label><b id="liveWaitlistPromotionFee">—</b></div>
-      <div class="summary-item"><label>Payment Window</label><b>24 hours from promotion</b></div>
+      <div class="summary-item"><label>Payment Deadline</label><b>No deadline</b></div>
     </div>
     <div class="note" style="margin-top:12px">
-      Queue order is strict within each division. Only the <b>#1 waitlisted team</b> can be promoted when a slot is actually available. Promotion locks the verified DUPRs, reserves the slot, changes the registration to <b>Approved for Payment</b>, starts a fresh 24-hour payment window, and sends the payment notice individually to every active team member with a valid email address. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate. It does not confirm the team.
+      Queue order is strict within each division. Only the <b>#1 waitlisted team</b> can be promoted when a slot is actually available. Promotion locks the verified DUPRs, reserves the slot, changes the registration to <b>Approved for Payment</b>, opens a payment request with no deadline, and sends the payment notice individually to every active team member with a valid email address. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate. It does not confirm the team.
     </div>
     <div id="liveWaitlistPromotionError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveWaitlistPromotionCancel" type="button">Cancel</button>
-      <button class="btn primary" id="liveWaitlistPromotionConfirm" type="button">Promote & Open 24-Hour Window</button>
+      <button class="btn primary" id="liveWaitlistPromotionConfirm" type="button">Promote & Request Payment</button>
     </div>
   </div>
 </div>
@@ -1220,9 +1222,9 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="fieldx"><label>Email <span class="req">*</span></label><input id="liveRosterReplacementEmail" type="email" maxlength="180"></div>
       <div class="fieldx"><label>Mobile <span class="req">*</span></label><input id="liveRosterReplacementMobile" maxlength="20" placeholder="09XXXXXXXXX"></div>
       <div class="fieldx"><label>DUPR ID <span class="req">*</span></label><input id="liveRosterReplacementDuprId" maxlength="30"></div>
-      <div class="fieldx"><label>Submitted DUPR <span class="req">*</span></label><input id="liveRosterReplacementDupr" type="number" min="0" max="9" step="0.01"></div>
+      <div class="fieldx"><label>Submitted DUPR <span class="req">*</span></label><input id="liveRosterReplacementDupr" type="text" maxlength="5" autocomplete="off" inputmode="decimal" placeholder="0.00"><label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600"><input id="liveRosterReplacementNr" type="checkbox" style="width:auto"> NR (no DUPR rating; the DUPR ID is still required)</label></div>
       <div class="fieldx"><label>Shirt Size <span class="req">*</span></label>
-        <select id="liveRosterReplacementShirt"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
+        <select id="liveRosterReplacementShirt"><option>2XS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
       </div>
     </div>
     <div class="fieldx" style="margin-top:10px">
@@ -1303,17 +1305,17 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="summary-item"><label>Reference</label><b id="livePaymentApprovalReference">—</b></div>
       <div class="summary-item"><label>Locked Team DUPR</label><b id="livePaymentApprovalDupr">—</b></div>
       <div class="summary-item"><label>Registration Fee</label><b id="livePaymentApprovalFee">—</b></div>
-      <div class="summary-item"><label>Payment Window</label><b>24 hours</b></div>
-      <div class="summary-item"><label>Projected Deadline</label><b id="livePaymentApprovalProjectedDue">—</b></div>
+      <div class="summary-item"><label>Payment Deadline</label><b>No deadline</b></div>
+      <div class="summary-item"><label>Slot</label><b>Held until paid or cancelled by an Admin</b></div>
       <div class="summary-item"><label>Resulting Status</label><b>Approved for Payment</b></div>
     </div>
     <div class="note" style="margin-top:12px">
-      This is a production state change. It locks the current verified DUPRs, keeps the division slot reserved, changes payment status to Requested, and opens a 24-hour payment window. It does <b>not</b> confirm the team or verify a payment. After approval, every active team member with a valid email address is automatically sent the payment-request notice. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate.
+      This is a production state change. It locks the current verified DUPRs, keeps the division slot reserved, changes payment status to Requested, and opens a payment request with no deadline. The slot stays held until the team pays or an Admin cancels the registration with a reason. It does <b>not</b> confirm the team or verify a payment. After approval, every active team member with a valid email address is automatically sent the payment-request notice. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate.
     </div>
     <div id="livePaymentApprovalError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="livePaymentApprovalCancel" type="button">Cancel</button>
-      <button class="btn primary" id="livePaymentApprovalConfirm" type="button">Approve & Open 24-Hour Window</button>
+      <button class="btn primary" id="livePaymentApprovalConfirm" type="button">Approve & Request Payment</button>
     </div>
   </div>
 </div>
@@ -1338,9 +1340,11 @@ tbody tr[data-id]:hover{background:#171b20}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" id="livePaymentVerifyProof" type="button">View Payment Proof</button>
     </div>
+    <div class="fieldx" id="livePaymentRejectField" style="margin-top:12px;display:none"><label>Reason if rejecting (sent to the team)</label><textarea id="livePaymentRejectReason" maxlength="500" placeholder="For example: the reference number does not match the proof."></textarea></div>
     <div id="livePaymentVerifyError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="livePaymentVerifyCancel" type="button">Cancel</button>
+      <button class="btn danger" id="livePaymentRejectConfirm" type="button" style="display:none">Reject Proof → Ask for Correction</button>
       <button class="btn success" id="livePaymentVerifyConfirm" type="button">Verify Payment → Confirm Team</button>
     </div>
   </div>
@@ -1355,22 +1359,12 @@ tbody tr[data-id]:hover{background:#171b20}
     <div class="summary-grid" style="margin:0 0 14px">
       <div class="summary-item"><label>Team</label><b id="liveOverdueTeam">—</b></div>
       <div class="summary-item"><label>Registration</label><b id="liveOverdueReference" class="ref">—</b></div>
-      <div class="summary-item"><label>Expired Deadline</label><b id="liveOverdueDue">—</b></div>
+      <div class="summary-item"><label>Overdue Since (earlier rule)</label><b id="liveOverdueDue">—</b></div>
       <div class="summary-item"><label>Slot</label><b id="liveOverdueSlot">Reserved</b></div>
     </div>
     <div id="liveOverdueExtensionWrap" class="fieldx">
-      <label for="liveOverdueHours">New payment window</label>
-      <select id="liveOverdueHours">
-        <option value="6">6 hours from now</option>
-        <option value="12">12 hours from now</option>
-        <option value="24" selected>24 hours from now</option>
-        <option value="48">48 hours from now</option>
-        <option value="72">72 hours from now</option>
-      </select>
-      <div class="summary-item" style="margin-top:10px">
-        <label>Projected New Deadline</label>
-        <b id="liveOverdueProjectedDue">—</b>
-      </div>
+      <input type="hidden" id="liveOverdueHours" value="24">
+      <div class="note">Reopening returns the team to <b>Approved for Payment</b> with no deadline. The reserved slot stays held.</div>
     </div>
     <div class="fieldx" style="margin-top:12px">
       <label for="liveOverdueReason">Reason <span class="req">*</span></label>
@@ -1380,7 +1374,7 @@ tbody tr[data-id]:hover{background:#171b20}
     <div id="liveOverdueError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveOverdueCancel" type="button">Back</button>
-      <button class="btn primary" id="liveOverdueConfirm" type="button">Extend Deadline</button>
+      <button class="btn primary" id="liveOverdueConfirm" type="button">Reopen Payment</button>
     </div>
   </div>
 </div>
@@ -1558,7 +1552,7 @@ function teamCap(t){return t.division==="DUPR 14"?14:16}
 function playerCap(t){return t.division==="DUPR 14"?3.99:4.49}
 function eligible(t){return teamTotal(t)<=teamCap(t) && t.players.every(p=>p.rating<=playerCap(t)) && t.players.filter(p=>p.gender==="Male").length===2 && t.players.filter(p=>p.gender==="Female").length===2}
 function holdsSlot(t){return ["Under Review","Action Required","Approved for Payment","Payment Submitted","Payment Overdue","Confirmed"].includes(t.status)}
-function capacity(div){const max=div==="DUPR 14"?16:12;const used=teams.filter(t=>t.division===div&&holdsSlot(t)).length;return {max,used,remaining:max-used}}
+function capacity(div){const max=div==="DUPR 14"?16:4;const used=teams.filter(t=>t.division===div&&holdsSlot(t)).length;return {max,used,remaining:max-used}}
 function navCount(key){
   if(key==="registrations")return teams.filter(t=>["Under Review","Action Required"].includes(t.status)).length;
   if(key==="payments")return teams.filter(t=>["Approved for Payment","Payment Submitted","Payment Overdue"].includes(t.status)).length;
@@ -1741,12 +1735,12 @@ function renderSettings(){
     <div class="grid2">
       <div class="card"><div class="cardhead"><div><h2>Registration</h2><p>Capacity and deadlines.</p></div></div>
         <div class="lineitem"><span>DUPR 14 capacity</span><b>16 teams</b></div>
-        <div class="lineitem"><span>DUPR 16 capacity</span><b>12 teams</b></div>
+        <div class="lineitem"><span>DUPR 16 capacity</span><b>4 teams</b></div>
         <div class="lineitem"><span>Registration closes</span><b>Oct 31 · 11:59 PM</b></div>
         <div class="lineitem"><span>Team fee</span><b>₱7,000</b></div>
       </div>
       <div class="card"><div class="cardhead"><div><h2>Payments</h2><p>Approved production policy.</p></div></div>
-        <div class="lineitem"><span>Payment window</span><b>24 hours</b></div>
+        <div class="lineitem"><span>Payment deadline</span><b>None (organizer cancels manually)</b></div>
         <div class="lineitem"><span>Allowed methods</span><b>GCash · MariBank</b></div>
         <div class="lineitem"><span>Proof required</span><b>Yes</b></div>
         <div class="lineitem"><span>Overdue slot handling</span><b>Admin decision</b></div>
@@ -1930,7 +1924,7 @@ function renderAdminRoster(){
         </div>
         <div class="fieldx">
           <label>Shirt Size</label>
-          <select id="arShirt${i}"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
+          <select id="arShirt${i}"><option>2XS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select>
         </div>
       </div>
     </div>
@@ -2412,7 +2406,7 @@ function openEditRegistration(id){
         <div class="fieldx"><label>Mobile</label><input id="erMobile${i}" value="${escapeAttr(p.mobile||"")}"></div>
         <div class="fieldx"><label>DUPR ID</label><input id="erDuprId${i}" value="${escapeAttr(p.duprId||"")}" ${locked?"disabled":""}></div>
         <div class="fieldx"><label>DUPR Rating</label><input id="erRating${i}" type="number" step="0.01" value="${Number(p.rating||0)||""}" ${locked?"disabled":""}></div>
-        <div class="fieldx"><label>Shirt Size</label><select id="erShirt${i}">${["XS","S","M","L","XL","2XL","3XL"].map(s=>`<option ${p.shirt===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div class="fieldx"><label>Shirt Size</label><select id="erShirt${i}">${["2XS","XS","S","M","L","XL","2XL","3XL"].map(s=>`<option ${p.shirt===s?"selected":""}>${s}</option>`).join("")}</select></div>
       </div>
     </div>`).join("");
   erErrors.classList.remove("show");editRegistrationModal.classList.add("open");
@@ -2436,6 +2430,8 @@ function saveEditRegistration(){
   closeEditRegistration();showToast("Registration updated",`${t.reference} changes were saved and audit logged.`);openRegistration(t.id);refreshCurrentView();
 }
 function escapeAttr(v){return String(v??"").replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+// Global HTML escaper for the prototype layer; the live layer defines its own esc() inside its closure.
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 
 /* Player replacement */
 function openReplacePlayer(id){
@@ -2656,7 +2652,7 @@ function renderReports(){
       <div class="report-card"><h3>Confirmed Team Roster</h3><div class="lineitem"><span>Confirmed teams</span><b>${active.filter(t=>t.status==="Confirmed").length}</b></div><div class="lineitem"><span>Confirmed players</span><b>${active.filter(t=>t.status==="Confirmed").length*4}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('confirmed')">Export Confirmed Roster</button></div></div>
       <div class="report-card"><h3>Outstanding Actions</h3><div class="lineitem"><span>Under Review</span><b>${active.filter(t=>t.status==="Under Review").length}</b></div><div class="lineitem"><span>Action Required</span><b>${active.filter(t=>t.status==="Action Required").length}</b></div><div class="lineitem"><span>Payment Overdue</span><b>${active.filter(t=>t.status==="Payment Overdue").length}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('outstanding')">Export Outstanding</button></div></div>
       <div class="report-card"><h3>DUPR & Eligibility</h3><div class="lineitem"><span>Players</span><b>${active.reduce((s,t)=>s+t.players.length,0)}</b></div><div class="lineitem"><span>Verified DUPR</span><b>${active.reduce((s,t)=>s+t.players.filter(p=>p.verified).length,0)}</b></div><div class="lineitem"><span>Hard warnings</span><b>${active.reduce((s,t)=>s+integrityWarnings(t).filter(w=>w.hard).length,0)}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('dupr')">Export DUPR Report</button></div></div>
-      <div class="report-card"><h3>Shirt Sizes</h3>${["XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${active.reduce((s,t)=>s+t.players.filter(p=>p.shirt===sz).length,0)}</b></div>`).join("")}<div class="report-actions"><button class="mini-btn" onclick="exportReport('shirts')">Export Shirt Report</button></div></div>
+      <div class="report-card"><h3>Shirt Sizes</h3>${["2XS","XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${active.reduce((s,t)=>s+t.players.filter(p=>p.shirt===sz).length,0)}</b></div>`).join("")}<div class="report-actions"><button class="mini-btn" onclick="exportReport('shirts')">Export Shirt Report</button></div></div>
       <div class="report-card"><h3>Registration Source</h3><div class="lineitem"><span>Player Portal</span><b>${active.filter(t=>t.source==="Player Portal").length}</b></div><div class="lineitem"><span>Admin Registration</span><b>${active.filter(t=>t.source==="Admin Registration").length}</b></div><div class="lineitem"><span>Admin Drafts</span><b>${active.filter(t=>t.status==="Draft").length}</b></div><div class="report-actions"><button class="mini-btn" onclick="exportReport('contacts')">Export Contact Directory</button></div></div>
     </div>`;
 }
@@ -2677,7 +2673,7 @@ function renderAdminUsers(){
   adminUsersView.innerHTML=`
     <div class="eyebrow">ACCESS CONTROL</div><h1>Admin Users</h1><div class="sub">Role-based access separates registration review, finance actions, administration and read-only visibility.</div>
     <div class="toolbar"><div></div><button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button></div>
-    <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card"><div class="user-card-head"><div><h3>${u.name}</h3><div class="dim">${u.email}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div><div class="lineitem"><span>Role</span><b>${u.role}</b></div><div class="actionbar right"><button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>${u.role!=="owner"?`<button class="mini-btn" onclick="toggleAdminUser(${u.id})">${u.active?"Disable":"Enable"}</button>`:""}</div></div>`).join("")}</div>
+    <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card"><div class="user-card-head"><div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div><div class="lineitem"><span>Role</span><b>${u.role}</b></div><div class="actionbar right"><button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>${u.role!=="owner"?`<button class="mini-btn" onclick="toggleAdminUser(${u.id})">${u.active?"Disable":"Enable"}</button>`:""}</div></div>`).join("")}</div>
     <div class="section"><div class="section-head"><div><h2>Role boundaries</h2><p>Recommended production permission model.</p></div></div><div class="role-grid">
       <div class="role-card"><b>Owner</b><small>Full access, settings and admin-user management.</small></div>
       <div class="role-card"><b>Admin</b><small>Registration operations, roster changes, waitlist and communications.</small></div>
@@ -2785,7 +2781,7 @@ function filteredShirtRows(){
   );
 }
 function shirtSizeSummary(rows){
-  const sizes=["XS","S","M","L","XL","2XL","3XL"],out={};
+  const sizes=["2XS","XS","S","M","L","XL","2XL","3XL"],out={};
   sizes.forEach(s=>out[s]={
     total:rows.filter(r=>r.size===s).length,
     d14:rows.filter(r=>r.size===s&&r.division==="DUPR 14").length,
@@ -2823,7 +2819,7 @@ function renderShirtReport(rebuildFilters=true){
   const confirmedCount=allScopeRows.filter(r=>r.status==="Confirmed").length;
   const pendingCount=allScopeRows.filter(r=>!["Confirmed","Cancelled","Draft"].includes(r.status)).length;
   const statusOptions=[...new Set(shirtRows().map(r=>r.status))].sort();
-  const sizes=["XS","S","M","L","XL","2XL","3XL"];
+  const sizes=["2XS","XS","S","M","L","XL","2XL","3XL"];
 
   shirtReportContent.innerHTML=`
     <div class="shirt-kpis">
@@ -2884,7 +2880,7 @@ function renderShirtReport(rebuildFilters=true){
     </table></div>`;
 }
 function exportShirtReport(type){
-  const sizes=["XS","S","M","L","XL","2XL","3XL"];
+  const sizes=["2XS","XS","S","M","L","XL","2XL","3XL"];
   let rows=[],header=[],filename="";
   if(type==="detailed"){
     const data=filteredShirtRows();
@@ -2974,7 +2970,7 @@ function refreshRoleSelects(){
   const addUserSelect=document.getElementById("auRole");
   if(addUserSelect){
     const current=addUserSelect.value;
-    addUserSelect.innerHTML=roleDefinitions.filter(r=>r.key!=="owner").map(r=>`<option value="${r.key}">${r.name}</option>`).join("");
+    addUserSelect.innerHTML=roleDefinitions.filter(r=>r.key!=="owner").map(r=>`<option value="${escapeAttr(r.key)}">${escapeAttr(r.name)}</option>`).join("");
     if([...addUserSelect.options].some(o=>o.value===current))addUserSelect.value=current;
   }
 }
@@ -2993,7 +2989,7 @@ function renderRoleManager(){
             <span class="audit-chip">${r.builtIn?"Built-in":"Custom"}</span>
           </div>
           <div class="permission-chips">
-            ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${permissionCatalog.find(x=>x.key===p)?.label||p}</span>`).join("")}
+            ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${esc(permissionCatalog.find(x=>x.key===p)?.label||p)}</span>`).join("")}
             ${r.permissions.length>5?`<span class="permission-chip">+${r.permissions.length-5} more</span>`:""}
           </div>
           <div class="role-actions">
@@ -3103,8 +3099,8 @@ function renderAdminUsers(){
     <div class="eyebrow">ACCESS CONTROL</div><h1>Admin Users</h1><div class="sub">Assign built-in or custom roles based on the exact responsibilities each admin needs.</div>
     <div class="toolbar"><div></div><button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button></div>
     <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card">
-      <div class="user-card-head"><div><h3>${u.name}</h3><div class="dim">${u.email}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div>
-      <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+      <div class="user-card-head"><div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div>
+      <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
       <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
       <div class="actionbar right">
         <button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>
@@ -3158,7 +3154,7 @@ function openChangeRoleModal(userId){
   crCurrentRole.textContent=roleDisplayName(user.role);
 
   const assignable=roleDefinitions.filter(r=>r.key!=="owner");
-  crNewRole.innerHTML=assignable.map(r=>`<option value="${r.key}" ${r.key===user.role?"selected":""}>${r.name}</option>`).join("");
+  crNewRole.innerHTML=assignable.map(r=>`<option value="${escapeAttr(r.key)}" ${r.key===user.role?"selected":""}>${escapeAttr(r.name)}</option>`).join("");
 
   updateChangeRolePreview();
   changeRoleModal.classList.add("open");
@@ -3181,7 +3177,7 @@ function updateChangeRolePreview(){
   crRoleDescription.textContent=role.description||"";
   crPermissionPreview.innerHTML=role.permissions.map(key=>{
     const p=permissionCatalog.find(x=>x.key===key);
-    return `<span class="permission-chip">${p?.label||key}</span>`;
+    return `<span class="permission-chip">${escapeAttr(p?.label||key)}</span>`;
   }).join("");
 
   const user=adminUsersData.find(u=>u.id===changingRoleUserId);
@@ -3267,7 +3263,7 @@ function openEditAdminUser(id){
     ? roleDefinitions.filter(r=>r.key==="owner")
     : roleDefinitions.filter(r=>r.key!=="owner");
 
-  euRole.innerHTML=roles.map(r=>`<option value="${r.key}" ${r.key===u.role?"selected":""}>${r.name}</option>`).join("");
+  euRole.innerHTML=roles.map(r=>`<option value="${escapeAttr(r.key)}" ${r.key===u.role?"selected":""}>${escapeAttr(r.name)}</option>`).join("");
   euRole.disabled=u.role==="owner";
   euStatus.disabled=u.role==="owner";
   euErrors.classList.remove("show");
@@ -3357,7 +3353,7 @@ function renderAdminUsers(){
         </div>
         <span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span>
       </div>
-      <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+      <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
       <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
       <div class="actionbar right">
         <button class="mini-btn" onclick="openEditAdminUser(${u.id})">Edit Details</button>
@@ -3373,7 +3369,8 @@ mobileMenu.onclick=()=>sidebar.classList.toggle("mobile-open");
 renderNav();renderDashboard();
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js 2.118.0, self-hosted and pinned (was an unpinned jsDelivr @2 script). Update: see vendor/README.md -->
+<script src="./vendor/supabase-js-2.118.0.umd.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK"></script>
 <script src="./config.js"></script>
 <script>
 (() => {
@@ -3525,6 +3522,20 @@ renderNav();renderDashboard();
     }).format(d);
   }
 
+  // No payment deadline (organizer decision 23 Oct 2026): a payment window never expires. Windows that turned overdue
+  // under the earlier 24-hour rule stay overdue until an Admin reopens or cancels them.
+  function paymentDeadlineText(w){
+    if(!w) return "—";
+    if(w.status==="overdue") return "Overdue under the earlier 24-hour rule";
+    if(w.status==="open"||w.status==="extended") return "No deadline";
+    return "—";
+  }
+  function paymentPendingSince(w){
+    if(!w?.opened_at || !["open","extended","overdue"].includes(w.status)) return "—";
+    const days=Math.floor((Date.now()-new Date(w.opened_at).getTime())/86400000);
+    return `${formatDateTime(w.opened_at)} · ${days<1?"today":days===1?"1 day":days+" days"}`;
+  }
+
   const registrationStatusLabels={
     under_review:"Under Review",
     action_required:"Action Required",
@@ -3639,7 +3650,7 @@ renderNav();renderDashboard();
       registration_approved_for_payment:"Approved for payment",
       waitlist_promoted_to_payment:"Waitlist promoted to payment",
       payment_window_overdue:"Payment became overdue",
-      payment_deadline_extended:"Payment deadline extended",
+      payment_deadline_extended:"Payment reopened / deadline extended",
       payment_overdue_cancelled_released:"Overdue registration cancelled",
       registration_cancelled_by_admin:"Registration cancelled by Admin",
       payment_submitted:"Payment submitted",
@@ -3666,7 +3677,7 @@ renderNav();renderDashboard();
   function auditEntryDescription(e){
     const c=e.context||{};
     if(e.action==="registration_player_dupr_verified"){
-      const rating=c.verifiedDupr==null?"":` at ${Number(c.verifiedDupr).toFixed(2)}`;
+      const rating=c.isNr?" confirmed as NR":c.verifiedDupr==null?"":` at ${Number(c.verifiedDupr).toFixed(2)}`;
       return `${c.playerName||"Player"}${rating}${c.duprId?` · ${c.duprId}`:""}`;
     }
     if(e.action==="registration_player_dupr_reopened"){
@@ -3689,17 +3700,17 @@ renderNav();renderDashboard();
       return `${c.teamName||"Team"} · 24-hour protection expired · reserved slot/old queue priority released`;
     }
     if(e.action==="registration_approved_for_payment"){
-      return `${c.teamName||"Team"} · eligibility locked · 24-hour payment window opened`;
+      return `${c.teamName||"Team"} · eligibility locked · payment window opened${c.dueAt?` · due ${formatDateTime(c.dueAt)}`:" · no deadline"}`;
     }
     if(e.action==="waitlist_promoted_to_payment"){
-      return `${c.teamName||"Team"} · promoted from waitlist · 24-hour payment window opened`;
+      return `${c.teamName||"Team"} · promoted from waitlist · payment window opened${c.dueAt?` · due ${formatDateTime(c.dueAt)}`:" · no deadline"}`;
     }
     if(e.action==="payment_window_overdue"){
       return `${c.teamName||"Team"} · deadline ${formatDateTime(c.dueAt)} expired · slot retained for Admin decision`;
     }
     if(e.action==="payment_deadline_extended"){
-      const hours=c.extensionHours?` · +${c.extensionHours}h`:"";
-      const due=c.dueAt?` · new deadline ${formatDateTime(c.dueAt)}`:"";
+      const hours=c.dueAt&&c.extensionHours?` · +${c.extensionHours}h`:"";
+      const due=c.dueAt?` · new deadline ${formatDateTime(c.dueAt)}`:" · reopened with no deadline";
       return `${c.teamName||"Team"}${hours}${due}${c.reason?` · ${c.reason}`:""}`;
     }
     if(e.action==="payment_overdue_cancelled_released"){
@@ -3823,7 +3834,7 @@ renderNav();renderDashboard();
 
   const LIVE_COMM_TEMPLATES={
     announcement:["ALL-OUT Pickleball League — Event Update","We have an important event update for registered players. Please review the information from the organizer below."],
-    payment:["ALL-OUT — Payment Reminder","Your team currently has an active or overdue payment requirement. Please review your latest payment email and complete the required action before the applicable deadline."],
+    payment:["ALL-OUT — Payment Reminder","Your team has an outstanding team payment. There is no payment deadline, but please complete it as soon as you can using the secure link in your payment email so the organizer can confirm your slot."],
     registration:["ALL-OUT — Registration Update","There is an update regarding your team registration. Please review your current status and any action requested by the organizer."],
     custom:["",""]
   };
@@ -3918,7 +3929,7 @@ renderNav();renderDashboard();
     }
     if(type==="confirmed"){
       header=["Reference","Team","Division","Player","Role","Gender","Email","Mobile","DUPR ID","DUPR","Shirt"];
-      active.filter(r=>r.status==="confirmed").forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.is_captain?"Captain":`Player ${m.slot||""}`,m.player?.gender||"",m.player?.email||"",m.player?.mobile||"",m.player?.dupr_id||"",m.locked_dupr??m.verified_dupr??m.submitted_dupr??"",m.shirt_size||""])));
+      active.filter(r=>r.status==="confirmed").forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.is_captain?"Captain":`Player ${m.slot||""}`,m.player?.gender||"",m.player?.email||"",m.player?.mobile||"",m.player?.dupr_id||"",m.is_nr?"NR":(m.locked_dupr??m.verified_dupr??m.submitted_dupr??""),m.shirt_size||""])));
     }
     if(type==="payments"){
       header=["Reference","Team","Division","Registration Status","Payment Status","Amount","Method","Provider Reference","Submitted","Verified"];
@@ -3930,7 +3941,7 @@ renderNav();renderDashboard();
     }
     if(type==="dupr"){
       header=["Reference","Team","Division","Player","DUPR ID","Submitted DUPR","Verified DUPR","Locked DUPR","Verification Status"];
-      active.forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.player?.dupr_id||"",m.submitted_dupr??"",m.verified_dupr??"",m.locked_dupr??"",m.dupr_verification_status||""])));
+      active.forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.division?.name||r.division?.code,m.player?.full_name||"",m.player?.dupr_id||"",m.is_nr?"NR":(m.submitted_dupr??""),m.verified_dupr??"",m.locked_dupr??"",m.dupr_verification_status||""])));
     }
     if(type==="shirts"){
       header=["Reference","Team","Registration Status","Player","Gender","Shirt Size"];
@@ -3978,7 +3989,7 @@ renderNav();renderDashboard();
           <div class="report-card"><h3>Confirmed Roster</h3><div class="lineitem"><span>Confirmed teams</span><b>${confirmed.length}</b></div><div class="lineitem"><span>Confirmed players</span><b>${confirmed.reduce((s,r)=>s+(r.players||[]).filter(m=>m.active_entry!==false).length,0)}</b></div><div class="report-actions">${btn("confirmed")}</div></div>
           <div class="report-card"><h3>Outstanding Actions</h3><div class="lineitem"><span>Under Review</span><b>${active.filter(r=>r.status==="under_review").length}</b></div><div class="lineitem"><span>Action Required</span><b>${active.filter(r=>r.status==="action_required").length}</b></div><div class="lineitem"><span>Waitlisted</span><b>${active.filter(r=>r.status==="waitlisted").length}</b></div><div class="lineitem"><span>Payment Overdue</span><b>${active.filter(r=>r.status==="payment_overdue").length}</b></div><div class="report-actions">${btn("outstanding")}</div></div>
           <div class="report-card"><h3>DUPR & Eligibility</h3><div class="lineitem"><span>Active players</span><b>${players}</b></div><div class="lineitem"><span>Verified DUPR</span><b>${verifiedDupr}</b></div><div class="lineitem"><span>Needs review</span><b>${Math.max(0,players-verifiedDupr)}</b></div><div class="report-actions">${btn("dupr")}</div></div>
-          <div class="report-card"><h3>Shirt Sizes</h3>${["XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${shirtCounts[sz]||0}</b></div>`).join("")}<div class="report-actions">${btn("shirts")}</div></div>
+          <div class="report-card"><h3>Shirt Sizes</h3>${["2XS","XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${shirtCounts[sz]||0}</b></div>`).join("")}<div class="report-actions">${btn("shirts")}</div></div>
           <div class="report-card"><h3>Contact Directory</h3><div class="lineitem"><span>Active teams</span><b>${active.length}</b></div><div class="lineitem"><span>Active player contacts</span><b>${players}</b></div><div class="report-actions">${btn("contacts")}</div></div>
         </div>`;
     }catch(err){reportsView.innerHTML=`<div class="eyebrow">REPORTING & RECONCILIATION · LIVE</div><h1>Reports</h1><div class="card"><h2>Could not load Reports</h2><p class="dim">${esc(err.message||"REPORTS_LOAD_FAILED")}</p><button class="btn primary" onclick="renderLiveReports()">Try Again</button></div>`}
@@ -4041,7 +4052,7 @@ renderNav();renderDashboard();
             <div class="cardhead"><div><h2>Division Capacity</h2><p>Live availability used by submission and waitlist logic.</p></div></div>
             <div class="addreg-grid">
               <div class="fieldx"><label>DUPR 14 Capacity</label><input id="liveCfgD14Capacity" type="number" min="${Math.max(1,Number(d14.reserved||0))}" value="${Number(d14.team_capacity||16)}"></div>
-              <div class="fieldx"><label>DUPR 16 Capacity</label><input id="liveCfgD16Capacity" type="number" min="${Math.max(1,Number(d16.reserved||0))}" value="${Number(d16.team_capacity||12)}"></div>
+              <div class="fieldx"><label>DUPR 16 Capacity</label><input id="liveCfgD16Capacity" type="number" min="${Math.max(1,Number(d16.reserved||0))}" value="${Number(d16.team_capacity||4)}"></div>
             </div>
             <div class="toggleline"><div><b>DUPR 14 Open</b><div class="dim">Allow new submissions to this division.</div></div><label class="switch"><input id="liveCfgD14Open" type="checkbox" ${d14.is_open!==false?"checked":""}><span></span></label></div>
             <div class="toggleline"><div><b>DUPR 16 Open</b><div class="dim">Allow new submissions to this division.</div></div><label class="switch"><input id="liveCfgD16Open" type="checkbox" ${d16.is_open!==false?"checked":""}><span></span></label></div>
@@ -4050,7 +4061,7 @@ renderNav();renderDashboard();
           <div class="card">
             <div class="cardhead"><div><h2>Locked Launch Policy</h2><p>Kept fixed to avoid introducing new payment behavior at launch.</p></div></div>
             <div class="lineitem"><span>Registration fee</span><b>₱${Number(d14.registration_fee||7000).toLocaleString("en-PH")} / team</b></div>
-            <div class="lineitem"><span>Payment window</span><b>24 hours</b></div>
+            <div class="lineitem"><span>Payment deadline</span><b>None (organizer cancels manually)</b></div>
             <div class="lineitem"><span>Waitlist</span><b>Enabled</b></div>
             <div class="lineitem"><span>Correction protection</span><b>24 hours</b></div>
             <div class="note">These policies already have production-tested lifecycle logic. They are intentionally not editable in Launch Control.</div>
@@ -4244,7 +4255,7 @@ renderNav();renderDashboard();
       <h1>Admin Operations</h1>
       <div class="sub">Authentication and permissions are connected to the production Supabase backend.</div>
       <div class="cards" style="margin-top:18px">
-        <div class="metric production-live-card"><label>Signed In As</label><strong style="font-size:18px">${me.email||"—"}</strong><small>${me.roleName||me.roleKey||"Admin"}</small></div>
+        <div class="metric production-live-card"><label>Signed In As</label><strong style="font-size:18px">${esc(me.email||"—")}</strong><small>${esc(me.roleName||me.roleKey||"Admin")}</small></div>
         <div class="metric production-live-card"><label>Your Permissions</label><strong>${me.permissions?.length||0}</strong><small>Server-enforced permission keys</small></div>
         <div class="metric production-live-card"><label>Active Admins</label><strong>${summary.activeAdmins??"—"}</strong><small>Live database count</small></div>
         <div class="metric production-live-card"><label>Roles</label><strong>${summary.roles??"—"}</strong><small>Active database roles</small></div>
@@ -4254,7 +4265,7 @@ renderNav();renderDashboard();
         <p>Your portal access is filtered by real database permissions. Registration review, DUPR verification, Action Required correction control, roster governance, payment operations, Confirmed Teams, the waitlist queue, operational reports, Communications and Launch Control settings are connected to the production backend. The remaining step is the final production audit.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${hasPermission("registrations_view")?`<button class="btn primary" onclick="openView('registrations')">Open Registrations</button>`:""}
-          ${canManageAccess()?`<button class="btn" onclick="openView('adminusers')">Open Admin Users</button>`:`<span class="user-live-tag">${me.roleName||me.roleKey||"Admin"} access enforced</span>`}
+          ${canManageAccess()?`<button class="btn" onclick="openView('adminusers')">Open Admin Users</button>`:`<span class="user-live-tag">${esc(me.roleName||me.roleKey||"Admin")} access enforced</span>`}
         </div>
       </div>`;
   }
@@ -4293,7 +4304,7 @@ renderNav();renderDashboard();
             </div></td>
           <td>${esc(division.name||division.code||"—")}</td>
           <td><b>${Number(r.team_dupr_submitted||0).toFixed(2)}</b>
-            <div class="dim">cap ${Number(division.team_rating_cap||0).toFixed(2)}</div></td>
+            <div class="dim">cap ${Number(division.team_rating_cap||0).toFixed(2)}${(r.players||[]).some(m=>m.is_nr)?` · ${(r.players||[]).filter(m=>m.is_nr).length} NR`:""}</div></td>
           <td><div class="stack"><b>${esc(captain.full_name||"—")}</b><span class="dim">${esc(captain.email||"—")}</span></div></td>
           <td>${verified?'<span class="pill p-ok">Verified</span>':'<span class="pill p-action">Needs review</span>'}</td>
           <td>${liveRegistrationPaymentBadge(r)}</td>
@@ -4368,7 +4379,7 @@ renderNav();renderDashboard();
     listView.innerHTML=`
       <div class="eyebrow">REGISTRATION OPERATIONS · LIVE</div>
       <h1>Registrations</h1>
-      <div class="sub">Production view of submitted teams, rosters, DUPR data, shirt sizes and registration history. Authorized reviewers can verify DUPR records; Owner/Admin can approve an eligible team for its 24-hour payment window.</div>
+      <div class="sub">Production view of submitted teams, rosters, DUPR data, shirt sizes and registration history. Authorized reviewers can verify DUPR records; Owner/Admin can approve an eligible team for payment (there is no payment deadline).</div>
 
       <div class="live-reg-summary">
         <div class="metric production-live-card"><label>Total Registrations</label><strong>${Number(snap.summary?.total||0)}</strong><small>Live database records</small></div>
@@ -4559,15 +4570,14 @@ renderNav();renderDashboard();
 
   function liveWaitlistReviewState(r){
     const members=r?.players||[];
-    const allVerified=members.length===4&&members.every(m=>m.dupr_verification_status==="verified"&&m.verified_dupr!=null);
+    const allVerified=members.length===4&&members.every(liveIsVerified);
     const d=r?.division||liveDivisionById(r?.division_id)||{};
     const playerCap=Number(d.player_rating_cap||0);
     const teamCap=Number(d.team_rating_cap||0);
-    const effective=m=>Number(m?.verified_dupr??m?.submitted_dupr??0);
-    const individualCaps=members.length===4&&members.every(m=>effective(m)<=playerCap);
-    const teamTotal=Number(members.reduce((sum,m)=>sum+effective(m),0).toFixed(2));
+    const individualCaps=members.length===4&&livePlayerCapsOk(members,d,playerCap);
+    const teamTotal=liveTeamTotal(members,d);
     const openIssues=(r?.issues||[]).filter(i=>i.status==="open");
-    return {allVerified,individualCaps,teamTotal,teamCap,openIssues,ready:allVerified&&individualCaps&&teamTotal<=teamCap&&openIssues.length===0};
+    return {allVerified,individualCaps,teamTotal,teamCap,openIssues,ready:allVerified&&individualCaps&&liveTeamCapOk(members,d,teamCap)&&openIssues.length===0};
   }
 
   function renderLiveWaitlistTable(rows){
@@ -4710,7 +4720,7 @@ renderNav();renderDashboard();
     return `<div class="tablewrap"><table>
       <thead><tr>
         <th>Reference / Team</th><th>Division</th><th>Amount</th><th>Method / Reference</th>
-        <th>Payment</th><th>Deadline</th><th>Submitted</th><th>Action</th>
+        <th>Payment</th><th>Pending since</th><th>Submitted</th><th>Action</th>
       </tr></thead>
       <tbody>${rows.map(r=>{
         const d=r.division||liveDivisionById(r.division_id)||{};
@@ -4724,7 +4734,7 @@ renderNav();renderDashboard();
           <td><b>₱${Number(amount||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></td>
           <td><div class="stack"><b>${esc(payment?.method||"—")}</b><span class="dim">${esc(payment?.provider_reference||"—")}</span></div></td>
           <td>${livePaymentBadge(r.payment_status)}</td>
-          <td>${esc(formatDateTime(window?.due_at))}</td>
+          <td>${esc(paymentPendingSince(window))}<div class="dim">${esc(paymentDeadlineText(window))}</div></td>
           <td>${esc(submitted)}</td>
           <td>${r.payment_status==="submitted" && payment
             ? (canVerify
@@ -4822,12 +4832,29 @@ renderNav();renderDashboard();
   const liveDuprReopenReason = document.getElementById("liveDuprReopenReason");
   const liveDuprReviewError = document.getElementById("liveDuprReviewError");
 
-  function liveEffectiveDupr(member){
+  // NR players carry no rating. They count as their division's NR equivalent, and are compared like any other rating.
+  // Every cap check uses whole hundredths so 14.00 / 14.01 style boundaries are exact.
+  const liveHundredths=n=>Math.round(Number(n)*100);
+  const liveFmt=n=>Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
+  const liveRatingText=v=>/^[0-9]+([.][0-9]{1,2})?$/.test(v)&&Number(v)>0&&Number(v)<=9;
+  // Verified means the organizer has checked the player. For an NR player that is a confirmation, not a rating.
+  function liveIsVerified(member){
+    return member?.dupr_verification_status==="verified"&&(member?.is_nr===true||member?.verified_dupr!=null);
+  }
+  function liveEffectiveDupr(member,division){
+    if(member?.is_nr===true){
+      const equivalent=Number(division?.nr_equivalent);
+      // A division with no NR equivalent makes the cap checks fail rather than counting NR as zero.
+      return division?.nr_equivalent!=null&&Number.isFinite(equivalent)?equivalent:NaN;
+    }
     if(member?.dupr_verification_status==="verified" && member?.verified_dupr!=null){
       return Number(member.verified_dupr||0);
     }
     return Number(member?.submitted_dupr||0);
   }
+  const liveTeamTotal=(members,division)=>members.reduce((sum,m)=>sum+liveHundredths(liveEffectiveDupr(m,division)),0)/100;
+  const livePlayerCapsOk=(members,division,playerCap)=>members.every(m=>liveHundredths(liveEffectiveDupr(m,division))<=liveHundredths(playerCap));
+  const liveTeamCapOk=(members,division,teamCap)=>liveHundredths(liveTeamTotal(members,division))<=liveHundredths(teamCap);
 
   function closeLiveDuprReview(){
     liveDuprReviewModal?.classList.remove("open");
@@ -4853,27 +4880,35 @@ renderNav();renderDashboard();
     }
     const d=r.division||liveDivisionById(r.division_id)||{};
     const p=m.player||{};
-    const isVerified=m.dupr_verification_status==="verified"&&m.verified_dupr!=null;
-    liveDuprReviewContext={registrationId,membershipId,isVerified};
+    const isNr=m.is_nr===true;
+    const isVerified=liveIsVerified(m);
+    liveDuprReviewContext={registrationId,membershipId,isVerified,isNr};
     liveDuprPlayerName.textContent=p.full_name||"—";
     liveDuprPlayerId.textContent=p.dupr_id||"—";
-    liveDuprSubmitted.textContent=Number(m.submitted_dupr||0).toFixed(2);
+    liveDuprSubmitted.textContent=isNr?"NR":Number(m.submitted_dupr||0).toFixed(2);
     liveDuprCap.textContent=Number(d.player_rating_cap||0).toFixed(2);
-    liveDuprVerifiedInput.value=Number(m.verified_dupr??m.submitted_dupr??0).toFixed(2);
+    liveDuprVerifiedInput.value=isNr?"":Number(m.verified_dupr??m.submitted_dupr??0).toFixed(2);
+    document.getElementById("liveDuprRatingField").style.display=isNr?"none":"";
+    const nrNote=document.getElementById("liveDuprNrNote");
+    nrNote.style.display=isNr?"block":"none";
+    nrNote.textContent=isNr?`Registered as NR (no DUPR rating). Look the DUPR ID up on DUPR and confirm NR only if the ID is valid and the player really has no rating. A valid ID alone does not verify NR. The team total counts this player as ${liveFmt(liveEffectiveDupr(m,d))}.`:"";
+    liveDuprReviewConfirm.textContent=isNr?"Confirm NR":"Mark Verified";
     liveDuprReviewError.style.display="none";
     liveDuprReviewError.textContent="";
     if(liveDuprReopenReason) liveDuprReopenReason.value="";
     if(liveDuprReopenWrap) liveDuprReopenWrap.style.display=isVerified?"block":"none";
     if(liveDuprReopen) liveDuprReopen.style.display=isVerified?"inline-flex":"none";
     liveDuprReviewModal.classList.add("open");
-    setTimeout(()=>liveDuprVerifiedInput.focus(),0);
+    setTimeout(()=>{ if(!isNr) liveDuprVerifiedInput.focus(); },0);
   };
 
   async function submitLiveDuprReview(){
     if(!liveDuprReviewContext) return;
-    const value=Number(liveDuprVerifiedInput.value);
-    if(!Number.isFinite(value) || value<0 || value>9){
-      liveDuprReviewError.textContent="Enter a verified DUPR rating between 0.00 and 9.00.";
+    const isNr=liveDuprReviewContext.isNr===true;
+    // The rating is sent as typed text: more than two decimals is refused, never rounded.
+    const text=String(liveDuprVerifiedInput.value||"").trim();
+    if(!isNr && !liveRatingText(text)){
+      liveDuprReviewError.textContent="Enter a verified DUPR rating between 0.01 and 9.00, with at most two decimals.";
       liveDuprReviewError.style.display="block";
       return;
     }
@@ -4882,12 +4917,11 @@ renderNav();renderDashboard();
     liveDuprReviewError.style.display="none";
     try{
       const ctx={...liveDuprReviewContext};
-      const result=await api("verify_dupr_player",{
-        registrationPlayerId:ctx.membershipId,
-        verifiedDupr:Number(value.toFixed(2))
-      });
+      const result=await api("verify_dupr_player",isNr
+        ?{registrationPlayerId:ctx.membershipId,confirmNr:true}
+        :{registrationPlayerId:ctx.membershipId,verifiedDupr:text});
       closeLiveDuprReview();
-      showToast("DUPR verified",`${result.result?.player?.fullName||"Player"} was marked verified in production.`);
+      showToast(isNr?"NR confirmed":"DUPR verified",`${result.result?.player?.fullName||"Player"} was ${isNr?"confirmed as NR":"marked verified"} in production.`);
       await loadLiveRegistrations(true);
       renderNav();
       openLiveRegistration(ctx.registrationId);
@@ -4897,12 +4931,14 @@ renderNav();renderDashboard();
         ADMIN_FORBIDDEN:"Your role is not allowed to verify DUPR records.",
         REGISTRATION_ELIGIBILITY_LOCKED:"Eligibility is already locked for this registration.",
         REGISTRATION_REVIEW_CLOSED:"This registration is no longer in a reviewable state.",
-        DUPR_VERIFICATION_WRITE_FAILED:"The verified DUPR could not be saved. No change was applied."
+        DUPR_VERIFICATION_WRITE_FAILED:"The verified DUPR could not be saved. No change was applied.",
+        DUPR_VERIFICATION_INPUT_INVALID:"Enter a verified DUPR rating above 0.00 and up to 9.00, with at most two decimals.",
+        DUPR_VERIFICATION_NR_CONFIRM_REQUIRED:"This player is registered as NR. Confirm NR instead of entering a rating."
       }[code]||code;
       liveDuprReviewError.textContent=friendly;
       liveDuprReviewError.style.display="block";
       liveDuprReviewConfirm.disabled=false;
-      liveDuprReviewConfirm.textContent="Mark Verified";
+      liveDuprReviewConfirm.textContent=isNr?"Confirm NR":"Mark Verified";
     }
   }
 
@@ -4995,9 +5031,11 @@ renderNav();renderDashboard();
     const targetTeamCap=Number(target.team_rating_cap||0);
     const targetPlayerCap=Number(target.player_rating_cap||0);
     const remaining=Number(target.remaining??0);
-    const allVerified=ctx.members.length===4&&ctx.members.every(m=>m.dupr_verification_status==="verified"&&m.verified_dupr!=null);
-    const playerCaps=allVerified&&ctx.members.every(m=>Number(m.verified_dupr)<=targetPlayerCap);
-    const teamCapOk=allVerified&&ctx.teamDupr<=targetTeamCap;
+    const allVerified=ctx.members.length===4&&ctx.members.every(liveIsVerified);
+    // NR players count as the destination division's NR equivalent.
+    const targetTotal=liveTeamTotal(ctx.members,target);
+    const playerCaps=allVerified&&livePlayerCapsOk(ctx.members,target,targetPlayerCap);
+    const teamCapOk=allVerified&&liveTeamCapOk(ctx.members,target,targetTeamCap);
     const eligible=ctx.rosterComplete&&ctx.genderComplete&&allVerified&&playerCaps&&teamCapOk;
     const result=remaining>0?"Under Review · slot reserved":"Waitlisted · joins back of queue";
     liveDivisionTargetTeamCap.textContent=targetTeamCap.toFixed(2);
@@ -5006,11 +5044,17 @@ renderNav();renderDashboard();
     liveDivisionResult.textContent=eligible?result:"Blocked · eligibility fails destination caps";
     liveDivisionResult.style.color=eligible?"":"var(--danger)";
     liveDivisionChangeConfirm.disabled=!eligible;
+    const nrCount=ctx.members.filter(m=>m.is_nr===true).length;
+    const nrNote=document.getElementById("liveDivisionNrNote");
+    if(nrNote){
+      nrNote.style.display=nrCount?"block":"none";
+      nrNote.textContent=nrCount?`${nrCount} NR player${nrCount===1?"":"s"} will go back to "needs check" after the move and must be confirmed again before the team can be approved for payment.`:"";
+    }
     if(!eligible){
       const reasons=[];
       if(!allVerified) reasons.push("all four DUPRs must be verified");
       if(allVerified&&!playerCaps) reasons.push(`a player exceeds the ${targetPlayerCap.toFixed(2)} cap`);
-      if(allVerified&&!teamCapOk) reasons.push(`team DUPR ${ctx.teamDupr.toFixed(2)} exceeds ${targetTeamCap.toFixed(2)}`);
+      if(allVerified&&!teamCapOk) reasons.push(`team DUPR ${liveFmt(targetTotal)} exceeds ${targetTeamCap.toFixed(2)}`);
       liveDivisionChangeError.textContent=`Cannot move to ${target.name||target.code}: ${reasons.join("; ")||"destination eligibility is not satisfied"}.`;
       liveDivisionChangeError.style.display="block";
     }else{
@@ -5034,8 +5078,8 @@ renderNav();renderDashboard();
     const members=r.players||[];
     const maleCount=members.filter(m=>String(m.player?.gender||"").trim().toLowerCase()==="male").length;
     const femaleCount=members.filter(m=>String(m.player?.gender||"").trim().toLowerCase()==="female").length;
-    const teamDupr=Number(members.reduce((sum,m)=>sum+Number(m.verified_dupr||0),0).toFixed(2));
-    const highest=members.reduce((max,m)=>Math.max(max,Number(m.verified_dupr||0)),0);
+    const teamDupr=liveTeamTotal(members,current);
+    const highest=members.reduce((max,m)=>Math.max(max,liveEffectiveDupr(m,current)||0),0);
     const options=(liveRegistrationsSnapshot?.divisions||[]).filter(d=>d.id!==r.division_id && d.is_open!==false);
     if(!options.length){
       showToast("No destination division","There is no other open division available for this event.");
@@ -5049,8 +5093,8 @@ renderNav();renderDashboard();
       genderComplete:maleCount===2&&femaleCount===2
     };
     liveDivisionCurrent.textContent=current.name||current.code||"—";
-    liveDivisionTeamDupr.textContent=teamDupr.toFixed(2);
-    liveDivisionHighestDupr.textContent=highest.toFixed(2);
+    liveDivisionTeamDupr.textContent=liveFmt(teamDupr);
+    liveDivisionHighestDupr.textContent=liveFmt(highest);
     liveDivisionReference.textContent=r.reference||"—";
     liveDivisionTarget.innerHTML=options.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.code||"Division")}</option>`).join("");
     liveDivisionReason.value="";
@@ -5082,7 +5126,7 @@ renderNav();renderDashboard();
       });
       closeLiveDivisionChange();
       const moved=result.result||{};
-      showToast("Division changed",`${moved.targetDivisionName||"Destination division"} · ${String(moved.status||"").replaceAll("_"," ")}.`);
+      showToast("Division changed",`${moved.targetDivisionName||"Destination division"} · ${String(moved.status||"").replaceAll("_"," ")}.${Number(moved.nrReverificationRequired)>0?" NR players must be confirmed again.":""}`);
       await loadLiveRegistrations(true);
       renderNav();
       openLiveRegistration(ctx.registrationId);
@@ -5133,6 +5177,11 @@ renderNav();renderDashboard();
   const liveRosterReplacementMobile=document.getElementById("liveRosterReplacementMobile");
   const liveRosterReplacementDuprId=document.getElementById("liveRosterReplacementDuprId");
   const liveRosterReplacementDupr=document.getElementById("liveRosterReplacementDupr");
+  const liveRosterReplacementNr=document.getElementById("liveRosterReplacementNr");
+  liveRosterReplacementNr?.addEventListener("change",()=>{
+    liveRosterReplacementDupr.disabled=liveRosterReplacementNr.checked;
+    if(liveRosterReplacementNr.checked) liveRosterReplacementDupr.value="";
+  });
   const liveRosterReplacementShirt=document.getElementById("liveRosterReplacementShirt");
   const liveRosterReplacementReason=document.getElementById("liveRosterReplacementReason");
   const liveRosterReplacementImpact=document.getElementById("liveRosterReplacementImpact");
@@ -5164,6 +5213,8 @@ renderNav();renderDashboard();
     liveRosterReplacementMobile.value="";
     liveRosterReplacementDuprId.value="";
     liveRosterReplacementDupr.value="";
+    liveRosterReplacementDupr.disabled=false;
+    if(liveRosterReplacementNr) liveRosterReplacementNr.checked=false;
     liveRosterReplacementShirt.value=m.shirt_size||"M";
     liveRosterReplacementReason.value="";
     liveRosterReplacementError.style.display="none";
@@ -5184,12 +5235,13 @@ renderNav();renderDashboard();
       email:String(liveRosterReplacementEmail.value||"").trim(),
       mobile:String(liveRosterReplacementMobile.value||"").trim(),
       duprId:String(liveRosterReplacementDuprId.value||"").trim(),
-      submittedDupr:Number(liveRosterReplacementDupr.value),
+      isNr:!!liveRosterReplacementNr?.checked,
+      submittedDupr:liveRosterReplacementNr?.checked?"":String(liveRosterReplacementDupr.value||"").trim(),
       shirtSize:String(liveRosterReplacementShirt.value||""),
       reason:String(liveRosterReplacementReason.value||"").trim()
     };
-    if(!payload.fullName||!payload.email||!payload.mobile||!payload.duprId||!Number.isFinite(payload.submittedDupr)||payload.reason.length<3){
-      liveRosterReplacementError.textContent="Complete all replacement fields and enter an approval reason.";
+    if(!payload.fullName||!payload.email||!payload.mobile||!payload.duprId||(!payload.isNr&&!liveRatingText(payload.submittedDupr))||payload.reason.length<3){
+      liveRosterReplacementError.textContent="Complete all replacement fields (a rating above 0.00 and up to 9.00 with at most two decimals, or NR) and enter an approval reason.";
       liveRosterReplacementError.style.display="block";
       return;
     }
@@ -5215,7 +5267,8 @@ renderNav();renderDashboard();
         TEAM_DUPR_CAP_EXCEEDED:"The replacement would put the team's current DUPR total over the division cap.",
         ROSTER_REPLACEMENT_PAYMENT_SUBMITTED:"A payment proof is currently awaiting verification. Resolve payment first before changing the roster.",
         ROSTER_REPLACEMENT_STATUS_INVALID:"This registration is already closed and cannot be edited.",
-        ROSTER_REPLACEMENT_SAME_PLAYER:"Choose a different replacement player."
+        ROSTER_REPLACEMENT_SAME_PLAYER:"Choose a different replacement player.",
+        ROSTER_REPLACEMENT_DUPR_INVALID:"Enter a rating above 0.00 and up to 9.00 with at most two decimals, or tick NR."
       }[code]||code;
       liveRosterReplacementError.textContent=friendly;
       liveRosterReplacementError.style.display="block";
@@ -5316,10 +5369,10 @@ renderNav();renderDashboard();
   window.openLiveRosterRevalidation=function(registrationId){
     const r=getLiveRegistrationRows().find(x=>x.id===registrationId);
     if(!r) return;
-    const total=(r.players||[]).reduce((sum,m)=>sum+Number(m.verified_dupr||0),0);
+    const total=liveTeamTotal(r.players||[],r.division||liveDivisionById(r.division_id)||{});
     liveRosterRevalidationContext={registrationId};
     liveRosterRevalidationTeam.textContent=r.team_name||"—";
-    liveRosterRevalidationDupr.textContent=total.toFixed(2);
+    liveRosterRevalidationDupr.textContent=liveFmt(total);
     liveRosterRevalidationReason.value="";
     liveRosterRevalidationError.style.display="none";
     liveRosterRevalidationModal.classList.add("open");
@@ -5374,7 +5427,7 @@ renderNav();renderDashboard();
     liveWaitlistPromotionModal?.classList.remove("open");
     liveWaitlistPromotionContext=null;
     if(liveWaitlistPromotionError){liveWaitlistPromotionError.style.display="none";liveWaitlistPromotionError.textContent="";}
-    if(liveWaitlistPromotionConfirm){liveWaitlistPromotionConfirm.disabled=false;liveWaitlistPromotionConfirm.textContent="Promote & Open 24-Hour Window";}
+    if(liveWaitlistPromotionConfirm){liveWaitlistPromotionConfirm.disabled=false;liveWaitlistPromotionConfirm.textContent="Promote & Request Payment";}
   }
 
   window.openLiveWaitlistPromotion=function(registrationId){
@@ -5426,13 +5479,12 @@ renderNav();renderDashboard();
     try{
       const result=await api("promote_waitlist",{registrationId:ctx.registrationId});
       closeLiveWaitlistPromotion();
-      const due=result.result?.dueAt?formatDateTime(result.result.dueAt):"24 hours from promotion";
-      const mailStatus=result.result?.notification?.status;
+            const mailStatus=result.result?.notification?.status;
       showToast(
         "Waitlist team promoted",
         mailStatus==="failed"||mailStatus==="log_failed"
-          ? `Slot reserved and payment window opened. Due ${due}. Team email delivery needs attention.`
-          : `Slot reserved and payment window opened. Due ${due}. Whole-team payment notices sent.`
+          ? `Slot reserved and payment requested (no deadline). Team email delivery needs attention.`
+          : `Slot reserved and payment requested (no deadline). Whole-team payment notices sent.`
       );
       liveAuditSnapshot=null;
       liveAuditLoadedAt=0;
@@ -5462,7 +5514,7 @@ renderNav();renderDashboard();
       liveWaitlistPromotionError.textContent=friendly;
       liveWaitlistPromotionError.style.display="block";
       liveWaitlistPromotionConfirm.disabled=false;
-      liveWaitlistPromotionConfirm.textContent="Promote & Open 24-Hour Window";
+      liveWaitlistPromotionConfirm.textContent="Promote & Request Payment";
     }
   }
 
@@ -5489,7 +5541,7 @@ renderNav();renderDashboard();
     if(livePaymentApprovalError){ livePaymentApprovalError.style.display="none"; livePaymentApprovalError.textContent=""; }
     if(livePaymentApprovalConfirm){
       livePaymentApprovalConfirm.disabled=false;
-      livePaymentApprovalConfirm.textContent="Approve & Open 24-Hour Window";
+      livePaymentApprovalConfirm.textContent="Approve & Request Payment";
     }
   }
 
@@ -5502,8 +5554,8 @@ renderNav();renderDashboard();
     if(!r) return;
     const d=r.division||liveDivisionById(r.division_id)||{};
     const members=r.players||[];
-    const reviewTotal=Number(members.reduce((sum,m)=>sum+liveEffectiveDupr(m),0).toFixed(2));
-    const allVerified=members.length===4&&members.every(m=>m.dupr_verification_status==="verified"&&m.verified_dupr!=null);
+    const reviewTotal=liveTeamTotal(members,d);
+    const allVerified=members.length===4&&members.every(liveIsVerified);
     const openIssues=(r.issues||[]).filter(i=>i.status==="open");
     if(r.status!=="under_review" || r.payment_status!=="not_requested" || r.eligibility_locked_at || !allVerified || openIssues.length){
       showToast("Approval not ready","Complete eligibility review and resolve open issues before approving payment.");
@@ -5512,10 +5564,10 @@ renderNav();renderDashboard();
     livePaymentApprovalContext={registrationId};
     livePaymentApprovalTeam.textContent=r.team_name||"—";
     livePaymentApprovalReference.textContent=r.reference||"—";
-    livePaymentApprovalDupr.textContent=`${reviewTotal.toFixed(2)} / ${Number(d.team_rating_cap||0).toFixed(2)}`;
+    livePaymentApprovalDupr.textContent=`${liveFmt(reviewTotal)} / ${Number(d.team_rating_cap||0).toFixed(2)}`;
     livePaymentApprovalFee.textContent=`₱${Number(d.registration_fee||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     if(livePaymentApprovalProjectedDue){
-      livePaymentApprovalProjectedDue.textContent=formatDateTime(new Date(Date.now()+(24*60*60*1000)));
+      livePaymentApprovalProjectedDue.textContent="No deadline";
     }
     livePaymentApprovalError.style.display="none";
     livePaymentApprovalError.textContent="";
@@ -5531,13 +5583,12 @@ renderNav();renderDashboard();
     try{
       const result=await api("approve_for_payment",{registrationId:ctx.registrationId});
       closeLivePaymentApproval();
-      const due=result.result?.dueAt?formatDateTime(result.result.dueAt):"24 hours from approval";
-      const mailStatus=result.result?.notification?.status;
+            const mailStatus=result.result?.notification?.status;
       showToast(
         "Approved for payment",
         mailStatus==="failed"||mailStatus==="log_failed"
-          ? `Payment window opened. Due ${due}. Team email delivery needs attention.`
-          : `Payment window opened. Due ${due}. Whole-team payment notices sent.`
+          ? `Payment requested (no deadline). Team email delivery needs attention.`
+          : `Payment requested (no deadline). Whole-team payment notices sent.`
       );
       await loadLiveRegistrations(true);
       renderNav();
@@ -5561,7 +5612,7 @@ renderNav();renderDashboard();
       livePaymentApprovalError.textContent=friendly;
       livePaymentApprovalError.style.display="block";
       livePaymentApprovalConfirm.disabled=false;
-      livePaymentApprovalConfirm.textContent="Approve & Open 24-Hour Window";
+      livePaymentApprovalConfirm.textContent="Approve & Request Payment";
     }
   }
 
@@ -5583,6 +5634,9 @@ renderNav();renderDashboard();
   const livePaymentVerifyReference=document.getElementById("livePaymentVerifyReference");
   const livePaymentVerifySubmitted=document.getElementById("livePaymentVerifySubmitted");
   const livePaymentVerifyError=document.getElementById("livePaymentVerifyError");
+  const livePaymentRejectField=document.getElementById("livePaymentRejectField");
+  const livePaymentRejectReason=document.getElementById("livePaymentRejectReason");
+  const livePaymentRejectConfirm=document.getElementById("livePaymentRejectConfirm");
 
   function closeLivePaymentVerify(){
     livePaymentVerifyModal?.classList.remove("open");
@@ -5590,6 +5644,8 @@ renderNav();renderDashboard();
     if(livePaymentVerifyError){ livePaymentVerifyError.style.display="none"; livePaymentVerifyError.textContent=""; }
     if(livePaymentVerifyConfirm){ livePaymentVerifyConfirm.disabled=false; livePaymentVerifyConfirm.textContent="Verify Payment → Confirm Team"; }
     if(livePaymentVerifyProof){ livePaymentVerifyProof.disabled=false; livePaymentVerifyProof.textContent="View Payment Proof"; }
+    if(livePaymentRejectReason){ livePaymentRejectReason.value=""; }
+    if(livePaymentRejectConfirm){ livePaymentRejectConfirm.disabled=false; livePaymentRejectConfirm.textContent="Reject Proof → Ask for Correction"; }
   }
 
   window.openLivePaymentProof=async function(paymentId){
@@ -5660,6 +5716,8 @@ renderNav();renderDashboard();
     livePaymentVerifyProof.disabled=!payment.proof_path;
     livePaymentVerifyProof.textContent=payment.proof_path?"View Payment Proof":"Proof unavailable";
     livePaymentVerifyConfirm.style.display=hasPermission("payments_verify")?"inline-flex":"none";
+    livePaymentRejectConfirm.style.display=hasPermission("payments_verify")?"inline-flex":"none";
+    livePaymentRejectField.style.display=hasPermission("payments_verify")?"block":"none";
     livePaymentVerifyModal.classList.add("open");
   };
 
@@ -5708,6 +5766,51 @@ renderNav();renderDashboard();
   livePaymentVerifyClose?.addEventListener("click",closeLivePaymentVerify);
   livePaymentVerifyCancel?.addEventListener("click",closeLivePaymentVerify);
   livePaymentVerifyConfirm?.addEventListener("click",submitLivePaymentVerification);
+  livePaymentRejectConfirm?.addEventListener("click",submitLivePaymentRejection);
+
+  async function submitLivePaymentRejection(){
+    if(!livePaymentVerifyContext || !hasPermission("payments_verify")) return;
+    const ctx={...livePaymentVerifyContext};
+    const reason=String(livePaymentRejectReason.value||"").trim();
+    if(reason.length<3){
+      livePaymentVerifyError.textContent="Enter the reason the team will see before rejecting the proof.";
+      livePaymentVerifyError.style.display="block";
+      livePaymentRejectReason.focus();
+      return;
+    }
+    livePaymentRejectConfirm.disabled=true;
+    livePaymentRejectConfirm.textContent="Rejecting…";
+    livePaymentVerifyError.style.display="none";
+    try{
+      const data=await api("reject_payment",{paymentId:ctx.paymentId,reason});
+      closeLivePaymentVerify();
+      const mailStatus=data.result?.notification?.status;
+      const mailNote=mailStatus==="failed"||mailStatus==="log_failed"?" The email to the team needs attention.":"";
+      showToast(
+        "Payment proof rejected",
+        data.result?.canResubmit
+          ? `${data.result?.teamName||"The team"} can submit a corrected proof (no deadline; the slot stays held).${mailNote}`
+          : `${data.result?.teamName||"The team"} has no open payment window, so the payment page stays closed. Reopen payment or cancel from the registration.${mailNote}`
+      );
+      liveAuditSnapshot=null;
+      liveAuditLoadedAt=0;
+      await loadLiveRegistrations(true);
+      renderNav();
+      openLiveRegistration(ctx.registrationId);
+    }catch(err){
+      const code=String(err?.message||"PAYMENT_REJECTION_FAILED");
+      const friendly={
+        ADMIN_FORBIDDEN:"Your role cannot reject payments.",
+        PAYMENT_NOT_FOUND:"The payment record could not be found.",
+        PAYMENT_NOT_SUBMITTED:"This payment is no longer waiting for verification.",
+        REJECTION_REASON_REQUIRED:"Enter the reason the team will see before rejecting the proof."
+      }[code]||code;
+      livePaymentVerifyError.textContent=friendly;
+      livePaymentVerifyError.style.display="block";
+      livePaymentRejectConfirm.disabled=false;
+      livePaymentRejectConfirm.textContent="Reject Proof → Ask for Correction";
+    }
+  }
   livePaymentVerifyProof?.addEventListener("click",()=>{
     if(livePaymentVerifyContext?.paymentId) openLivePaymentProof(livePaymentVerifyContext.paymentId);
   });
@@ -5886,12 +5989,12 @@ renderNav();renderDashboard();
     const teamCap=Number(division.team_rating_cap||0);
     const playerCap=Number(division.player_rating_cap||0);
     const submittedTotal=Number(r.team_dupr_submitted||0);
-    const reviewTotal=Number(members.reduce((sum,m)=>sum+liveEffectiveDupr(m),0).toFixed(2));
+    const reviewTotal=liveTeamTotal(members,division);
     const rosterComplete=members.length===4;
     const genderComplete=maleCount===2&&femaleCount===2;
-    const allVerified=members.length===4&&members.every(m=>m.dupr_verification_status==="verified");
-    const individualCaps=members.every(m=>liveEffectiveDupr(m)<=playerCap);
-    const teamCapOk=reviewTotal<=teamCap;
+    const allVerified=members.length===4&&members.every(liveIsVerified);
+    const individualCaps=livePlayerCapsOk(members,division,playerCap);
+    const teamCapOk=liveTeamCapOk(members,division,teamCap);
     const latestWindow=(r.payment_windows||[])[0]||null;
     const latestPayment=(r.payments||[])[0]||null;
     const openIssues=(r.issues||[]).filter(i=>i.status==="open");
@@ -5964,7 +6067,7 @@ renderNav();renderDashboard();
     drawerBody.innerHTML=`
       <div class="summary-grid">
         <div class="summary-item"><label>Division</label><b>${esc(division.name||division.code||"—")}</b>${canChangeDivision?`<button class="mini-btn" style="margin-top:8px" onclick="openLiveDivisionChange('${esc(r.id)}')">Change Division</button>`:""}</div>
-        <div class="summary-item"><label>Team DUPR</label><b>${reviewTotal.toFixed(2)} / ${teamCap.toFixed(2)}</b><small>${reviewTotal!==submittedTotal?`Submitted ${submittedTotal.toFixed(2)}`:"Current review total"}</small></div>
+        <div class="summary-item"><label>Team DUPR</label><b>${liveFmt(reviewTotal)} / ${teamCap.toFixed(2)}</b><small>${liveHundredths(reviewTotal)!==liveHundredths(submittedTotal)?`Submitted ${submittedTotal.toFixed(2)}`:"Current review total"}${members.some(m=>m.is_nr)?` · includes ${members.filter(m=>m.is_nr).length} NR at ${liveFmt(division.nr_equivalent)}`:""}</small></div>
         <div class="summary-item"><label>Registration Source</label><b>${r.source==="admin"?"Admin":"Player Portal"}</b></div>
         <div class="summary-item"><label>Slot</label><b>${r.holds_slot?"Reserved":"Not reserved"}</b></div>
         <div class="summary-item"><label>Payment</label><b>${esc(liveRegistrationPaymentLabel(r))}</b></div>
@@ -5979,18 +6082,19 @@ renderNav();renderDashboard();
           <thead><tr><th>Player</th><th>Contact</th><th>Gender</th><th>DUPR</th><th>Shirt</th><th>Verification</th><th>Governance</th></tr></thead>
           <tbody>${members.map(m=>{
             const p=m.player||{};
-            const effective=liveEffectiveDupr(m);
-            const verified=m.dupr_verification_status==="verified";
+            const effective=liveEffectiveDupr(m,division);
+            const verified=liveIsVerified(m);
+            const isNr=m.is_nr===true;
             const canEdit=canReviewDupr&&!m.dupr_locked_at;
             return `<tr>
               <td><div class="teamname">${esc(p.full_name||"—")}</div><div class="dim">${m.is_captain?"Team Captain":`Player ${Number(m.slot||0)}`}</div></td>
               <td><div class="live-reg-contact"><span>${esc(p.email||"—")}</span><span class="dim">${esc(p.mobile||"—")}</span></div></td>
               <td>${esc(p.gender||"—")}</td>
-              <td><b>${effective.toFixed(2)}</b><div class="dim">${esc(p.dupr_id||"—")} · submitted ${Number(m.submitted_dupr||0).toFixed(2)} · cap ${playerCap.toFixed(2)}</div></td>
+              <td><b>${isNr?"NR":liveFmt(effective)}</b><div class="dim">${esc(p.dupr_id||"—")} · ${isNr?`counts ${liveFmt(effective)}`:`submitted ${Number(m.submitted_dupr||0).toFixed(2)}`} · cap ${playerCap.toFixed(2)}</div></td>
               <td>${esc(m.shirt_size||"—")}</td>
               <td>
-                ${verified?'<span class="pill p-ok">Verified</span>':`<span class="pill p-action">${esc(m.dupr_verification_status||"pending")}</span>`}
-                ${canEdit?`<button class="mini-btn" style="margin-left:7px" onclick="openLiveDuprReview('${esc(r.id)}','${esc(m.id)}')">${verified?"Review":"Verify"}</button>`:""}
+                ${verified?`<span class="pill p-ok">${isNr?"NR confirmed":"Verified"}</span>`:`<span class="pill p-action">${isNr?"NR · needs check":esc(m.dupr_verification_status||"pending")}</span>`}
+                ${canEdit?`<button class="mini-btn" style="margin-left:7px" onclick="openLiveDuprReview('${esc(r.id)}','${esc(m.id)}')">${verified?"Review":isNr?"Confirm NR":"Verify"}</button>`:""}
               </td>
               <td>
                 ${canGovernRoster?`<button class="mini-btn" onclick="openLiveRosterReplacement('${esc(r.id)}','${esc(m.id)}')">Replace</button>`:""}
@@ -5998,7 +6102,7 @@ renderNav();renderDashboard();
               </td>
             </tr>`;
           }).join("")}
-          <tr><td colspan="3"><b>TEAM TOTAL</b></td><td><b>${reviewTotal.toFixed(2)}</b><div class="dim">cap ${teamCap.toFixed(2)}</div></td><td>—</td><td>${teamCapOk?'<span class="pill p-ok">Within cap</span>':'<span class="pill p-action">Over cap</span>'}</td><td>—</td></tr>
+          <tr><td colspan="3"><b>TEAM TOTAL</b></td><td><b>${liveFmt(reviewTotal)}</b><div class="dim">cap ${teamCap.toFixed(2)}</div></td><td>—</td><td>${teamCapOk?'<span class="pill p-ok">Within cap</span>':'<span class="pill p-action">Over cap</span>'}</td><td>—</td></tr>
           </tbody>
         </table></div>
       </div>
@@ -6026,7 +6130,8 @@ renderNav();renderDashboard();
         <div class="panel-title"><h3>Payment snapshot</h3>${livePaymentBadge(r.payment_status)}</div>
         <div class="summary-grid" style="margin:0">
           <div class="summary-item"><label>Window</label><b>${esc(latestWindow?.status||"—")}</b></div>
-          <div class="summary-item"><label>Due</label><b>${esc(formatDateTime(latestWindow?.due_at))}</b></div>
+          <div class="summary-item"><label>Deadline</label><b>${esc(paymentDeadlineText(latestWindow))}</b></div>
+          <div class="summary-item"><label>Pending Since</label><b>${esc(paymentPendingSince(latestWindow))}</b></div>
           <div class="summary-item"><label>Amount</label><b>₱${Number(latestPayment?.amount??division.registration_fee??0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
           <div class="summary-item"><label>Method</label><b>${esc(latestPayment?.method||"—")}</b></div>
           <div class="summary-item"><label>Payment Reference</label><b class="ref">${esc(latestPayment?.provider_reference||"—")}</b></div>
@@ -6071,7 +6176,7 @@ renderNav();renderDashboard();
           ? `<span class="readonly-tag">PAYMENT SUBMITTED</span><button class="btn success" onclick="openLivePaymentReview('${esc(r.id)}')">Review & Verify Payment</button><button class="btn" onclick="closeDrawer()">Close</button>`
           : r.status==="payment_overdue"
             ? (hasPermission("payments_extend")
-                ? `<span class="readonly-tag">PAYMENT OVERDUE · SLOT RESERVED</span><button class="btn" onclick="openLiveOverdueDecision('${esc(r.id)}','extend')">Extend Deadline</button><button class="btn danger" onclick="openLiveOverdueDecision('${esc(r.id)}','cancel')">Cancel / Release Slot</button><button class="btn" onclick="closeDrawer()">Close</button>`
+                ? `<span class="readonly-tag">PAYMENT OVERDUE · SLOT RESERVED</span><button class="btn" onclick="openLiveOverdueDecision('${esc(r.id)}','extend')">Reopen Payment</button><button class="btn danger" onclick="openLiveOverdueDecision('${esc(r.id)}','cancel')">Cancel / Release Slot</button><button class="btn" onclick="closeDrawer()">Close</button>`
                 : `<span class="readonly-tag">PAYMENT OVERDUE · ADMIN DECISION REQUIRED</span><button class="btn" onclick="closeDrawer()">Close</button>`)
           : r.status==="action_required"
             ? `<span class="readonly-tag">ACTION REQUIRED · ${r.priority_protected_until?"PRIORITY PROTECTED":"PROTECTION EXPIRED"}</span>${canResolveActionRequired?`<button class="btn success" onclick="openLiveActionRequired('${esc(r.id)}','resolve')">Resolve Correction</button>`:""}<button class="btn" onclick="closeDrawer()">Close</button>`
@@ -6266,7 +6371,7 @@ renderNav();renderDashboard();
     liveOverdueDecisionContext=null;
     if(liveOverdueReason) liveOverdueReason.value="";
     if(liveOverdueError){liveOverdueError.style.display="none";liveOverdueError.textContent="";}
-    if(liveOverdueConfirm){liveOverdueConfirm.disabled=false;liveOverdueConfirm.textContent="Extend Deadline";liveOverdueConfirm.className="btn primary";}
+    if(liveOverdueConfirm){liveOverdueConfirm.disabled=false;liveOverdueConfirm.textContent="Reopen Payment";liveOverdueConfirm.className="btn primary";}
   }
 
   window.openLiveOverdueDecision=function(registrationId,mode="extend"){
@@ -6298,14 +6403,14 @@ renderNav();renderDashboard();
       liveOverdueConfirm.textContent="Cancel & Release Slot";
       liveOverdueConfirm.className="btn danger";
     }else{
-      liveOverdueTitle.textContent="Extend Payment Deadline";
-      liveOverdueHelp.textContent="Grant additional payment time while keeping the tournament slot reserved.";
+      liveOverdueTitle.textContent="Reopen Payment (No Deadline)";
+      liveOverdueHelp.textContent="This team became overdue under the earlier 24-hour rule. Reopen payment without a deadline, keeping the slot reserved.";
       liveOverdueExtensionWrap.style.display="block";
-      liveOverdueReason.placeholder="Required — reason for extending this overdue payment deadline.";
+      liveOverdueReason.placeholder="Required — reason for reopening payment for this team.";
       liveOverdueHours.value="24";
       updateLiveOverdueProjectedDue();
-      liveOverdueWarning.innerHTML="The registration returns to <b>Approved for Payment</b> with a new deadline calculated from now. The reserved slot stays protected.";
-      liveOverdueConfirm.textContent="Extend Deadline";
+      liveOverdueWarning.innerHTML="The registration returns to <b>Approved for Payment</b> with no payment deadline. The reserved slot stays held until the team pays or an Admin cancels the registration.";
+      liveOverdueConfirm.textContent="Reopen Payment";
       liveOverdueConfirm.className="btn primary";
     }
     liveOverdueDecisionModal.classList.add("open");
@@ -6323,7 +6428,7 @@ renderNav();renderDashboard();
     const isCancel=ctx.mode==="cancel";
     const extensionHours=Number(liveOverdueHours?.value||24);
     liveOverdueConfirm.disabled=true;
-    liveOverdueConfirm.textContent=isCancel?"Cancelling…":"Extending…";
+    liveOverdueConfirm.textContent=isCancel?"Cancelling…":"Reopening…";
     liveOverdueError.style.display="none";
     try{
       const data=await api(isCancel?"cancel_overdue_registration":"extend_payment_deadline",{
@@ -6339,7 +6444,7 @@ renderNav();renderDashboard();
       if(isCancel){
         showToast("Registration cancelled","The overdue registration was cancelled and its reserved slot was released.");
       }else{
-        showToast("Deadline extended",`A new ${extensionHours}-hour payment window is active and the slot remains reserved.`);
+        showToast("Payment reopened","The team can pay with no deadline, and the slot remains reserved.");
       }
       openLiveRegistration(ctx.registrationId);
     }catch(err){
@@ -6353,13 +6458,13 @@ renderNav();renderDashboard();
         PAYMENT_OVERDUE_PAYMENT_EXISTS:"A payment submission already exists. Use the payment-review workflow instead.",
         PAYMENT_EXTENSION_HOURS_INVALID:"Choose a valid extension between 1 and 168 hours.",
         PAYMENT_OVERDUE_REASON_REQUIRED:"A reason is required.",
-        PAYMENT_EXTENSION_WRITE_FAILED:"The deadline could not be extended. No partial change should be applied.",
+        PAYMENT_EXTENSION_WRITE_FAILED:"Payment could not be reopened. No partial change should be applied.",
         PAYMENT_OVERDUE_CANCEL_WRITE_FAILED:"The registration could not be cancelled. No partial slot release should be applied."
       }[code]||code;
       liveOverdueError.textContent=friendly;
       liveOverdueError.style.display="block";
       liveOverdueConfirm.disabled=false;
-      liveOverdueConfirm.textContent=isCancel?"Cancel & Release Slot":"Extend Deadline";
+      liveOverdueConfirm.textContent=isCancel?"Cancel & Release Slot":"Reopen Payment";
     }
   }
 
@@ -6465,19 +6570,19 @@ renderNav();renderDashboard();
           const assigned=canManageUsers()?adminUsersData.filter(u=>u.role===r.key && u.active).length:null;
           const assignmentText=assigned===null?"Assignments restricted":`${assigned} active user${assigned===1?"":"s"} assigned`;
           const roleAction=!allowRoleWrites
-            ? `<button class="mini-btn" onclick="viewRole('${r.key}')">View Permissions</button>`
+            ? `<button class="mini-btn" data-role-action="view" data-role-key="${esc(r.key)}">View Permissions</button>`
             : r.key==="owner"
-              ? `<button class="mini-btn" onclick="viewRole('${r.key}')">View Protected Permissions</button>`
+              ? `<button class="mini-btn" data-role-action="view" data-role-key="${esc(r.key)}">View Protected Permissions</button>`
               : r.builtIn
-                ? `<button class="mini-btn" onclick="openRoleModal('${r.key}')">Manage Permissions</button>`
-                : `<button class="mini-btn" onclick="openRoleModal('${r.key}')">Edit Role</button><button class="mini-btn" onclick="deleteRole('${r.key}')">Delete</button>`;
+                ? `<button class="mini-btn" data-role-action="edit" data-role-key="${esc(r.key)}">Manage Permissions</button>`
+                : `<button class="mini-btn" data-role-action="edit" data-role-key="${esc(r.key)}">Edit Role</button><button class="mini-btn" data-role-action="delete" data-role-key="${esc(r.key)}">Delete</button>`;
           return `<div class="role-manager-card ${r.builtIn?"":"custom"}">
             <div class="role-manager-head">
-              <div><h4>${r.name}</h4><small>${r.description}</small><small>${assignmentText}</small></div>
+              <div><h4>${esc(r.name)}</h4><small>${esc(r.description)}</small><small>${assignmentText}</small></div>
               <span class="audit-chip">${r.key==="owner"?"Protected":r.builtIn?"Built-in":"Custom"}</span>
             </div>
             <div class="permission-chips">
-              ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${permissionCatalog.find(x=>x.key===p)?.label||p}</span>`).join("")}
+              ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${esc(permissionCatalog.find(x=>x.key===p)?.label||p)}</span>`).join("")}
               ${r.permissions.length>5?`<span class="permission-chip">+${r.permissions.length-5} more</span>`:""}
             </div>
             <div class="role-actions">${roleAction}</div>
@@ -6487,6 +6592,16 @@ renderNav();renderDashboard();
     </div>`;
   };
 
+
+  // Role buttons carry the role key in a data attribute, never inside inline JavaScript.
+  document.addEventListener("click",e=>{
+    const btn=e.target.closest?.("[data-role-action]");
+    if(!btn) return;
+    const key=btn.dataset.roleKey;
+    if(btn.dataset.roleAction==="view") window.viewRole(key);
+    else if(btn.dataset.roleAction==="edit") window.openRoleModal(key);
+    else if(btn.dataset.roleAction==="delete") window.deleteRole(key);
+  });
 
   window.renderAdminUsers = function(){
     if(!canManageAccess()){
@@ -6502,12 +6617,12 @@ renderNav();renderDashboard();
         ${canManageUsers()?`<button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button>`:""}</div>
       ${canManageUsers()?`<div class="user-grid">${adminUsersData.map(u=>`<div class="user-card">
         <div class="user-card-head">
-          <div><h3>${u.name}</h3><div class="dim">${u.email}</div>
-            <div class="user-meta">${u.title?`<span class="audit-chip">${u.title}</span>`:""}${u.mobile?`<span class="audit-chip">${u.mobile}</span>`:""}</div>
+          <div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div>
+            <div class="user-meta">${u.title?`<span class="audit-chip">${esc(u.title)}</span>`:""}${u.mobile?`<span class="audit-chip">${esc(u.mobile)}</span>`:""}</div>
           </div>
           <span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span>
         </div>
-        <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+        <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
         <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
         <div class="actionbar right">
           <button class="mini-btn" onclick="openEditAdminUser(${u.id})">Edit Details</button>
@@ -6624,8 +6739,8 @@ renderNav();renderDashboard();
       : "Your current access allows you to view, but not modify, these permissions.";
     rolePermissionGrid.innerHTML=permissionCatalog.map(p=>`
       <label class="permission-option">
-        <input type="checkbox" data-permission="${p.key}" disabled ${role.permissions.includes(p.key)?"checked":""}>
-        <span><b>${p.label}</b><small>${p.desc}</small></span>
+        <input type="checkbox" data-permission="${esc(p.key)}" disabled ${role.permissions.includes(p.key)?"checked":""}>
+        <span><b>${esc(p.label)}</b><small>${esc(p.desc)}</small></span>
       </label>`).join("");
     if(saveButton)saveButton.style.display="none";
     if(cancelButton)cancelButton.textContent="Close";
@@ -6681,8 +6796,8 @@ renderNav();renderDashboard();
 
     rolePermissionGrid.innerHTML=permissionCatalog.map(p=>`
       <label class="permission-option">
-        <input type="checkbox" data-permission="${p.key}" ${role?.permissions.includes(p.key)?"checked":""}>
-        <span><b>${p.label}</b><small>${p.desc}</small></span>
+        <input type="checkbox" data-permission="${esc(p.key)}" ${role?.permissions.includes(p.key)?"checked":""}>
+        <span><b>${esc(p.label)}</b><small>${esc(p.desc)}</small></span>
       </label>`).join("");
 
     setRoleStatus(builtIn?"Ready · changes autosave":"","");

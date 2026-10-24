@@ -1114,7 +1114,7 @@ tbody tr[data-id]:hover{background:#171b20}
 <div class="modal" id="liveWaitlistPromotionModal">
   <div class="modal-card">
     <div class="modal-head">
-      <div><h3>Promote Waitlisted Team</h3><p>Reserve the newly available division slot and start this team's 24-hour payment window.</p></div>
+      <div><h3>Promote Waitlisted Team</h3><p>Reserve the newly available division slot and open its payment request. There is no payment deadline.</p></div>
       <button class="x" id="liveWaitlistPromotionClose" type="button">×</button>
     </div>
     <div class="summary-grid" style="margin:0 0 14px">
@@ -1125,15 +1125,15 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="summary-item"><label>Available Slots</label><b id="liveWaitlistPromotionSlots">—</b></div>
       <div class="summary-item"><label>Locked Team DUPR</label><b id="liveWaitlistPromotionDupr">—</b></div>
       <div class="summary-item"><label>Registration Fee</label><b id="liveWaitlistPromotionFee">—</b></div>
-      <div class="summary-item"><label>Payment Window</label><b>24 hours from promotion</b></div>
+      <div class="summary-item"><label>Payment Deadline</label><b>No deadline</b></div>
     </div>
     <div class="note" style="margin-top:12px">
-      Queue order is strict within each division. Only the <b>#1 waitlisted team</b> can be promoted when a slot is actually available. Promotion locks the verified DUPRs, reserves the slot, changes the registration to <b>Approved for Payment</b>, starts a fresh 24-hour payment window, and sends the payment notice individually to every active team member with a valid email address. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate. It does not confirm the team.
+      Queue order is strict within each division. Only the <b>#1 waitlisted team</b> can be promoted when a slot is actually available. Promotion locks the verified DUPRs, reserves the slot, changes the registration to <b>Approved for Payment</b>, opens a payment request with no deadline, and sends the payment notice individually to every active team member with a valid email address. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate. It does not confirm the team.
     </div>
     <div id="liveWaitlistPromotionError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveWaitlistPromotionCancel" type="button">Cancel</button>
-      <button class="btn primary" id="liveWaitlistPromotionConfirm" type="button">Promote & Open 24-Hour Window</button>
+      <button class="btn primary" id="liveWaitlistPromotionConfirm" type="button">Promote & Request Payment</button>
     </div>
   </div>
 </div>
@@ -1303,17 +1303,17 @@ tbody tr[data-id]:hover{background:#171b20}
       <div class="summary-item"><label>Reference</label><b id="livePaymentApprovalReference">—</b></div>
       <div class="summary-item"><label>Locked Team DUPR</label><b id="livePaymentApprovalDupr">—</b></div>
       <div class="summary-item"><label>Registration Fee</label><b id="livePaymentApprovalFee">—</b></div>
-      <div class="summary-item"><label>Payment Window</label><b>24 hours</b></div>
-      <div class="summary-item"><label>Projected Deadline</label><b id="livePaymentApprovalProjectedDue">—</b></div>
+      <div class="summary-item"><label>Payment Deadline</label><b>No deadline</b></div>
+      <div class="summary-item"><label>Slot</label><b>Held until paid or cancelled by an Admin</b></div>
       <div class="summary-item"><label>Resulting Status</label><b>Approved for Payment</b></div>
     </div>
     <div class="note" style="margin-top:12px">
-      This is a production state change. It locks the current verified DUPRs, keeps the division slot reserved, changes payment status to Requested, and opens a 24-hour payment window. It does <b>not</b> confirm the team or verify a payment. After approval, every active team member with a valid email address is automatically sent the payment-request notice. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate.
+      This is a production state change. It locks the current verified DUPRs, keeps the division slot reserved, changes payment status to Requested, and opens a payment request with no deadline. The slot stays held until the team pays or an Admin cancels the registration with a reason. It does <b>not</b> confirm the team or verify a payment. After approval, every active team member with a valid email address is automatically sent the payment-request notice. Secure payment access is available to any active registered team member. The OTP is sent only to the roster email used to authenticate.
     </div>
     <div id="livePaymentApprovalError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="livePaymentApprovalCancel" type="button">Cancel</button>
-      <button class="btn primary" id="livePaymentApprovalConfirm" type="button">Approve & Open 24-Hour Window</button>
+      <button class="btn primary" id="livePaymentApprovalConfirm" type="button">Approve & Request Payment</button>
     </div>
   </div>
 </div>
@@ -1355,22 +1355,12 @@ tbody tr[data-id]:hover{background:#171b20}
     <div class="summary-grid" style="margin:0 0 14px">
       <div class="summary-item"><label>Team</label><b id="liveOverdueTeam">—</b></div>
       <div class="summary-item"><label>Registration</label><b id="liveOverdueReference" class="ref">—</b></div>
-      <div class="summary-item"><label>Expired Deadline</label><b id="liveOverdueDue">—</b></div>
+      <div class="summary-item"><label>Overdue Since (earlier rule)</label><b id="liveOverdueDue">—</b></div>
       <div class="summary-item"><label>Slot</label><b id="liveOverdueSlot">Reserved</b></div>
     </div>
     <div id="liveOverdueExtensionWrap" class="fieldx">
-      <label for="liveOverdueHours">New payment window</label>
-      <select id="liveOverdueHours">
-        <option value="6">6 hours from now</option>
-        <option value="12">12 hours from now</option>
-        <option value="24" selected>24 hours from now</option>
-        <option value="48">48 hours from now</option>
-        <option value="72">72 hours from now</option>
-      </select>
-      <div class="summary-item" style="margin-top:10px">
-        <label>Projected New Deadline</label>
-        <b id="liveOverdueProjectedDue">—</b>
-      </div>
+      <input type="hidden" id="liveOverdueHours" value="24">
+      <div class="note">Reopening returns the team to <b>Approved for Payment</b> with no deadline. The reserved slot stays held.</div>
     </div>
     <div class="fieldx" style="margin-top:12px">
       <label for="liveOverdueReason">Reason <span class="req">*</span></label>
@@ -1380,7 +1370,7 @@ tbody tr[data-id]:hover{background:#171b20}
     <div id="liveOverdueError" class="errorbox" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveOverdueCancel" type="button">Back</button>
-      <button class="btn primary" id="liveOverdueConfirm" type="button">Extend Deadline</button>
+      <button class="btn primary" id="liveOverdueConfirm" type="button">Reopen Payment</button>
     </div>
   </div>
 </div>
@@ -1558,7 +1548,7 @@ function teamCap(t){return t.division==="DUPR 14"?14:16}
 function playerCap(t){return t.division==="DUPR 14"?3.99:4.49}
 function eligible(t){return teamTotal(t)<=teamCap(t) && t.players.every(p=>p.rating<=playerCap(t)) && t.players.filter(p=>p.gender==="Male").length===2 && t.players.filter(p=>p.gender==="Female").length===2}
 function holdsSlot(t){return ["Under Review","Action Required","Approved for Payment","Payment Submitted","Payment Overdue","Confirmed"].includes(t.status)}
-function capacity(div){const max=div==="DUPR 14"?16:12;const used=teams.filter(t=>t.division===div&&holdsSlot(t)).length;return {max,used,remaining:max-used}}
+function capacity(div){const max=div==="DUPR 14"?16:4;const used=teams.filter(t=>t.division===div&&holdsSlot(t)).length;return {max,used,remaining:max-used}}
 function navCount(key){
   if(key==="registrations")return teams.filter(t=>["Under Review","Action Required"].includes(t.status)).length;
   if(key==="payments")return teams.filter(t=>["Approved for Payment","Payment Submitted","Payment Overdue"].includes(t.status)).length;
@@ -1741,12 +1731,12 @@ function renderSettings(){
     <div class="grid2">
       <div class="card"><div class="cardhead"><div><h2>Registration</h2><p>Capacity and deadlines.</p></div></div>
         <div class="lineitem"><span>DUPR 14 capacity</span><b>16 teams</b></div>
-        <div class="lineitem"><span>DUPR 16 capacity</span><b>12 teams</b></div>
+        <div class="lineitem"><span>DUPR 16 capacity</span><b>4 teams</b></div>
         <div class="lineitem"><span>Registration closes</span><b>Oct 31 · 11:59 PM</b></div>
         <div class="lineitem"><span>Team fee</span><b>₱7,000</b></div>
       </div>
       <div class="card"><div class="cardhead"><div><h2>Payments</h2><p>Approved production policy.</p></div></div>
-        <div class="lineitem"><span>Payment window</span><b>24 hours</b></div>
+        <div class="lineitem"><span>Payment deadline</span><b>None (organizer cancels manually)</b></div>
         <div class="lineitem"><span>Allowed methods</span><b>GCash · MariBank</b></div>
         <div class="lineitem"><span>Proof required</span><b>Yes</b></div>
         <div class="lineitem"><span>Overdue slot handling</span><b>Admin decision</b></div>
@@ -2436,6 +2426,8 @@ function saveEditRegistration(){
   closeEditRegistration();showToast("Registration updated",`${t.reference} changes were saved and audit logged.`);openRegistration(t.id);refreshCurrentView();
 }
 function escapeAttr(v){return String(v??"").replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+// Global HTML escaper for the prototype layer; the live layer defines its own esc() inside its closure.
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 
 /* Player replacement */
 function openReplacePlayer(id){
@@ -2677,7 +2669,7 @@ function renderAdminUsers(){
   adminUsersView.innerHTML=`
     <div class="eyebrow">ACCESS CONTROL</div><h1>Admin Users</h1><div class="sub">Role-based access separates registration review, finance actions, administration and read-only visibility.</div>
     <div class="toolbar"><div></div><button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button></div>
-    <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card"><div class="user-card-head"><div><h3>${u.name}</h3><div class="dim">${u.email}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div><div class="lineitem"><span>Role</span><b>${u.role}</b></div><div class="actionbar right"><button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>${u.role!=="owner"?`<button class="mini-btn" onclick="toggleAdminUser(${u.id})">${u.active?"Disable":"Enable"}</button>`:""}</div></div>`).join("")}</div>
+    <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card"><div class="user-card-head"><div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div><div class="lineitem"><span>Role</span><b>${u.role}</b></div><div class="actionbar right"><button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>${u.role!=="owner"?`<button class="mini-btn" onclick="toggleAdminUser(${u.id})">${u.active?"Disable":"Enable"}</button>`:""}</div></div>`).join("")}</div>
     <div class="section"><div class="section-head"><div><h2>Role boundaries</h2><p>Recommended production permission model.</p></div></div><div class="role-grid">
       <div class="role-card"><b>Owner</b><small>Full access, settings and admin-user management.</small></div>
       <div class="role-card"><b>Admin</b><small>Registration operations, roster changes, waitlist and communications.</small></div>
@@ -2974,7 +2966,7 @@ function refreshRoleSelects(){
   const addUserSelect=document.getElementById("auRole");
   if(addUserSelect){
     const current=addUserSelect.value;
-    addUserSelect.innerHTML=roleDefinitions.filter(r=>r.key!=="owner").map(r=>`<option value="${r.key}">${r.name}</option>`).join("");
+    addUserSelect.innerHTML=roleDefinitions.filter(r=>r.key!=="owner").map(r=>`<option value="${escapeAttr(r.key)}">${escapeAttr(r.name)}</option>`).join("");
     if([...addUserSelect.options].some(o=>o.value===current))addUserSelect.value=current;
   }
 }
@@ -2993,7 +2985,7 @@ function renderRoleManager(){
             <span class="audit-chip">${r.builtIn?"Built-in":"Custom"}</span>
           </div>
           <div class="permission-chips">
-            ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${permissionCatalog.find(x=>x.key===p)?.label||p}</span>`).join("")}
+            ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${esc(permissionCatalog.find(x=>x.key===p)?.label||p)}</span>`).join("")}
             ${r.permissions.length>5?`<span class="permission-chip">+${r.permissions.length-5} more</span>`:""}
           </div>
           <div class="role-actions">
@@ -3103,8 +3095,8 @@ function renderAdminUsers(){
     <div class="eyebrow">ACCESS CONTROL</div><h1>Admin Users</h1><div class="sub">Assign built-in or custom roles based on the exact responsibilities each admin needs.</div>
     <div class="toolbar"><div></div><button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button></div>
     <div class="user-grid">${adminUsersData.map(u=>`<div class="user-card">
-      <div class="user-card-head"><div><h3>${u.name}</h3><div class="dim">${u.email}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div>
-      <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+      <div class="user-card-head"><div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div></div><span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span></div>
+      <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
       <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
       <div class="actionbar right">
         <button class="mini-btn" onclick="changeUserRole(${u.id})">Change Role</button>
@@ -3158,7 +3150,7 @@ function openChangeRoleModal(userId){
   crCurrentRole.textContent=roleDisplayName(user.role);
 
   const assignable=roleDefinitions.filter(r=>r.key!=="owner");
-  crNewRole.innerHTML=assignable.map(r=>`<option value="${r.key}" ${r.key===user.role?"selected":""}>${r.name}</option>`).join("");
+  crNewRole.innerHTML=assignable.map(r=>`<option value="${escapeAttr(r.key)}" ${r.key===user.role?"selected":""}>${escapeAttr(r.name)}</option>`).join("");
 
   updateChangeRolePreview();
   changeRoleModal.classList.add("open");
@@ -3181,7 +3173,7 @@ function updateChangeRolePreview(){
   crRoleDescription.textContent=role.description||"";
   crPermissionPreview.innerHTML=role.permissions.map(key=>{
     const p=permissionCatalog.find(x=>x.key===key);
-    return `<span class="permission-chip">${p?.label||key}</span>`;
+    return `<span class="permission-chip">${escapeAttr(p?.label||key)}</span>`;
   }).join("");
 
   const user=adminUsersData.find(u=>u.id===changingRoleUserId);
@@ -3267,7 +3259,7 @@ function openEditAdminUser(id){
     ? roleDefinitions.filter(r=>r.key==="owner")
     : roleDefinitions.filter(r=>r.key!=="owner");
 
-  euRole.innerHTML=roles.map(r=>`<option value="${r.key}" ${r.key===u.role?"selected":""}>${r.name}</option>`).join("");
+  euRole.innerHTML=roles.map(r=>`<option value="${escapeAttr(r.key)}" ${r.key===u.role?"selected":""}>${escapeAttr(r.name)}</option>`).join("");
   euRole.disabled=u.role==="owner";
   euStatus.disabled=u.role==="owner";
   euErrors.classList.remove("show");
@@ -3357,7 +3349,7 @@ function renderAdminUsers(){
         </div>
         <span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span>
       </div>
-      <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+      <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
       <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
       <div class="actionbar right">
         <button class="mini-btn" onclick="openEditAdminUser(${u.id})">Edit Details</button>
@@ -3373,7 +3365,8 @@ mobileMenu.onclick=()=>sidebar.classList.toggle("mobile-open");
 renderNav();renderDashboard();
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js 2.118.0, self-hosted and pinned (was an unpinned jsDelivr @2 script). Update: see vendor/README.md -->
+<script src="../vendor/supabase-js-2.118.0.umd.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK"></script>
 <script src="./config.js"></script>
 <script>
 (() => {
@@ -3525,6 +3518,20 @@ renderNav();renderDashboard();
     }).format(d);
   }
 
+  // No payment deadline (organizer decision 23 Oct 2026): a payment window never expires. Windows that turned overdue
+  // under the earlier 24-hour rule stay overdue until an Admin reopens or cancels them.
+  function paymentDeadlineText(w){
+    if(!w) return "—";
+    if(w.status==="overdue") return "Overdue under the earlier 24-hour rule";
+    if(w.status==="open"||w.status==="extended") return "No deadline";
+    return "—";
+  }
+  function paymentPendingSince(w){
+    if(!w?.opened_at || !["open","extended","overdue"].includes(w.status)) return "—";
+    const days=Math.floor((Date.now()-new Date(w.opened_at).getTime())/86400000);
+    return `${formatDateTime(w.opened_at)} · ${days<1?"today":days===1?"1 day":days+" days"}`;
+  }
+
   const registrationStatusLabels={
     under_review:"Under Review",
     action_required:"Action Required",
@@ -3639,7 +3646,7 @@ renderNav();renderDashboard();
       registration_approved_for_payment:"Approved for payment",
       waitlist_promoted_to_payment:"Waitlist promoted to payment",
       payment_window_overdue:"Payment became overdue",
-      payment_deadline_extended:"Payment deadline extended",
+      payment_deadline_extended:"Payment reopened / deadline extended",
       payment_overdue_cancelled_released:"Overdue registration cancelled",
       registration_cancelled_by_admin:"Registration cancelled by Admin",
       payment_submitted:"Payment submitted",
@@ -3689,17 +3696,17 @@ renderNav();renderDashboard();
       return `${c.teamName||"Team"} · 24-hour protection expired · reserved slot/old queue priority released`;
     }
     if(e.action==="registration_approved_for_payment"){
-      return `${c.teamName||"Team"} · eligibility locked · 24-hour payment window opened`;
+      return `${c.teamName||"Team"} · eligibility locked · payment window opened${c.dueAt?` · due ${formatDateTime(c.dueAt)}`:" · no deadline"}`;
     }
     if(e.action==="waitlist_promoted_to_payment"){
-      return `${c.teamName||"Team"} · promoted from waitlist · 24-hour payment window opened`;
+      return `${c.teamName||"Team"} · promoted from waitlist · payment window opened${c.dueAt?` · due ${formatDateTime(c.dueAt)}`:" · no deadline"}`;
     }
     if(e.action==="payment_window_overdue"){
       return `${c.teamName||"Team"} · deadline ${formatDateTime(c.dueAt)} expired · slot retained for Admin decision`;
     }
     if(e.action==="payment_deadline_extended"){
-      const hours=c.extensionHours?` · +${c.extensionHours}h`:"";
-      const due=c.dueAt?` · new deadline ${formatDateTime(c.dueAt)}`:"";
+      const hours=c.dueAt&&c.extensionHours?` · +${c.extensionHours}h`:"";
+      const due=c.dueAt?` · new deadline ${formatDateTime(c.dueAt)}`:" · reopened with no deadline";
       return `${c.teamName||"Team"}${hours}${due}${c.reason?` · ${c.reason}`:""}`;
     }
     if(e.action==="payment_overdue_cancelled_released"){
@@ -3823,7 +3830,7 @@ renderNav();renderDashboard();
 
   const LIVE_COMM_TEMPLATES={
     announcement:["ALL-OUT Pickleball League — Event Update","We have an important event update for registered players. Please review the information from the organizer below."],
-    payment:["ALL-OUT — Payment Reminder","Your team currently has an active or overdue payment requirement. Please review your latest payment email and complete the required action before the applicable deadline."],
+    payment:["ALL-OUT — Payment Reminder","Your team has an outstanding team payment. There is no payment deadline, but please complete it as soon as you can using the secure link in your payment email so the organizer can confirm your slot."],
     registration:["ALL-OUT — Registration Update","There is an update regarding your team registration. Please review your current status and any action requested by the organizer."],
     custom:["",""]
   };
@@ -4041,7 +4048,7 @@ renderNav();renderDashboard();
             <div class="cardhead"><div><h2>Division Capacity</h2><p>Live availability used by submission and waitlist logic.</p></div></div>
             <div class="addreg-grid">
               <div class="fieldx"><label>DUPR 14 Capacity</label><input id="liveCfgD14Capacity" type="number" min="${Math.max(1,Number(d14.reserved||0))}" value="${Number(d14.team_capacity||16)}"></div>
-              <div class="fieldx"><label>DUPR 16 Capacity</label><input id="liveCfgD16Capacity" type="number" min="${Math.max(1,Number(d16.reserved||0))}" value="${Number(d16.team_capacity||12)}"></div>
+              <div class="fieldx"><label>DUPR 16 Capacity</label><input id="liveCfgD16Capacity" type="number" min="${Math.max(1,Number(d16.reserved||0))}" value="${Number(d16.team_capacity||4)}"></div>
             </div>
             <div class="toggleline"><div><b>DUPR 14 Open</b><div class="dim">Allow new submissions to this division.</div></div><label class="switch"><input id="liveCfgD14Open" type="checkbox" ${d14.is_open!==false?"checked":""}><span></span></label></div>
             <div class="toggleline"><div><b>DUPR 16 Open</b><div class="dim">Allow new submissions to this division.</div></div><label class="switch"><input id="liveCfgD16Open" type="checkbox" ${d16.is_open!==false?"checked":""}><span></span></label></div>
@@ -4050,7 +4057,7 @@ renderNav();renderDashboard();
           <div class="card">
             <div class="cardhead"><div><h2>Locked Launch Policy</h2><p>Kept fixed to avoid introducing new payment behavior at launch.</p></div></div>
             <div class="lineitem"><span>Registration fee</span><b>₱${Number(d14.registration_fee||7000).toLocaleString("en-PH")} / team</b></div>
-            <div class="lineitem"><span>Payment window</span><b>24 hours</b></div>
+            <div class="lineitem"><span>Payment deadline</span><b>None (organizer cancels manually)</b></div>
             <div class="lineitem"><span>Waitlist</span><b>Enabled</b></div>
             <div class="lineitem"><span>Correction protection</span><b>24 hours</b></div>
             <div class="note">These policies already have production-tested lifecycle logic. They are intentionally not editable in Launch Control.</div>
@@ -4244,7 +4251,7 @@ renderNav();renderDashboard();
       <h1>Admin Operations</h1>
       <div class="sub">Authentication and permissions are connected to the production Supabase backend.</div>
       <div class="cards" style="margin-top:18px">
-        <div class="metric production-live-card"><label>Signed In As</label><strong style="font-size:18px">${me.email||"—"}</strong><small>${me.roleName||me.roleKey||"Admin"}</small></div>
+        <div class="metric production-live-card"><label>Signed In As</label><strong style="font-size:18px">${esc(me.email||"—")}</strong><small>${esc(me.roleName||me.roleKey||"Admin")}</small></div>
         <div class="metric production-live-card"><label>Your Permissions</label><strong>${me.permissions?.length||0}</strong><small>Server-enforced permission keys</small></div>
         <div class="metric production-live-card"><label>Active Admins</label><strong>${summary.activeAdmins??"—"}</strong><small>Live database count</small></div>
         <div class="metric production-live-card"><label>Roles</label><strong>${summary.roles??"—"}</strong><small>Active database roles</small></div>
@@ -4254,7 +4261,7 @@ renderNav();renderDashboard();
         <p>Your portal access is filtered by real database permissions. Registration review, DUPR verification, Action Required correction control, roster governance, payment operations, Confirmed Teams, the waitlist queue, operational reports, Communications and Launch Control settings are connected to the production backend. The remaining step is the final production audit.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${hasPermission("registrations_view")?`<button class="btn primary" onclick="openView('registrations')">Open Registrations</button>`:""}
-          ${canManageAccess()?`<button class="btn" onclick="openView('adminusers')">Open Admin Users</button>`:`<span class="user-live-tag">${me.roleName||me.roleKey||"Admin"} access enforced</span>`}
+          ${canManageAccess()?`<button class="btn" onclick="openView('adminusers')">Open Admin Users</button>`:`<span class="user-live-tag">${esc(me.roleName||me.roleKey||"Admin")} access enforced</span>`}
         </div>
       </div>`;
   }
@@ -4368,7 +4375,7 @@ renderNav();renderDashboard();
     listView.innerHTML=`
       <div class="eyebrow">REGISTRATION OPERATIONS · LIVE</div>
       <h1>Registrations</h1>
-      <div class="sub">Production view of submitted teams, rosters, DUPR data, shirt sizes and registration history. Authorized reviewers can verify DUPR records; Owner/Admin can approve an eligible team for its 24-hour payment window.</div>
+      <div class="sub">Production view of submitted teams, rosters, DUPR data, shirt sizes and registration history. Authorized reviewers can verify DUPR records; Owner/Admin can approve an eligible team for payment (there is no payment deadline).</div>
 
       <div class="live-reg-summary">
         <div class="metric production-live-card"><label>Total Registrations</label><strong>${Number(snap.summary?.total||0)}</strong><small>Live database records</small></div>
@@ -4710,7 +4717,7 @@ renderNav();renderDashboard();
     return `<div class="tablewrap"><table>
       <thead><tr>
         <th>Reference / Team</th><th>Division</th><th>Amount</th><th>Method / Reference</th>
-        <th>Payment</th><th>Deadline</th><th>Submitted</th><th>Action</th>
+        <th>Payment</th><th>Pending since</th><th>Submitted</th><th>Action</th>
       </tr></thead>
       <tbody>${rows.map(r=>{
         const d=r.division||liveDivisionById(r.division_id)||{};
@@ -4724,7 +4731,7 @@ renderNav();renderDashboard();
           <td><b>₱${Number(amount||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></td>
           <td><div class="stack"><b>${esc(payment?.method||"—")}</b><span class="dim">${esc(payment?.provider_reference||"—")}</span></div></td>
           <td>${livePaymentBadge(r.payment_status)}</td>
-          <td>${esc(formatDateTime(window?.due_at))}</td>
+          <td>${esc(paymentPendingSince(window))}<div class="dim">${esc(paymentDeadlineText(window))}</div></td>
           <td>${esc(submitted)}</td>
           <td>${r.payment_status==="submitted" && payment
             ? (canVerify
@@ -5374,7 +5381,7 @@ renderNav();renderDashboard();
     liveWaitlistPromotionModal?.classList.remove("open");
     liveWaitlistPromotionContext=null;
     if(liveWaitlistPromotionError){liveWaitlistPromotionError.style.display="none";liveWaitlistPromotionError.textContent="";}
-    if(liveWaitlistPromotionConfirm){liveWaitlistPromotionConfirm.disabled=false;liveWaitlistPromotionConfirm.textContent="Promote & Open 24-Hour Window";}
+    if(liveWaitlistPromotionConfirm){liveWaitlistPromotionConfirm.disabled=false;liveWaitlistPromotionConfirm.textContent="Promote & Request Payment";}
   }
 
   window.openLiveWaitlistPromotion=function(registrationId){
@@ -5426,13 +5433,12 @@ renderNav();renderDashboard();
     try{
       const result=await api("promote_waitlist",{registrationId:ctx.registrationId});
       closeLiveWaitlistPromotion();
-      const due=result.result?.dueAt?formatDateTime(result.result.dueAt):"24 hours from promotion";
-      const mailStatus=result.result?.notification?.status;
+            const mailStatus=result.result?.notification?.status;
       showToast(
         "Waitlist team promoted",
         mailStatus==="failed"||mailStatus==="log_failed"
-          ? `Slot reserved and payment window opened. Due ${due}. Team email delivery needs attention.`
-          : `Slot reserved and payment window opened. Due ${due}. Whole-team payment notices sent.`
+          ? `Slot reserved and payment requested (no deadline). Team email delivery needs attention.`
+          : `Slot reserved and payment requested (no deadline). Whole-team payment notices sent.`
       );
       liveAuditSnapshot=null;
       liveAuditLoadedAt=0;
@@ -5462,7 +5468,7 @@ renderNav();renderDashboard();
       liveWaitlistPromotionError.textContent=friendly;
       liveWaitlistPromotionError.style.display="block";
       liveWaitlistPromotionConfirm.disabled=false;
-      liveWaitlistPromotionConfirm.textContent="Promote & Open 24-Hour Window";
+      liveWaitlistPromotionConfirm.textContent="Promote & Request Payment";
     }
   }
 
@@ -5489,7 +5495,7 @@ renderNav();renderDashboard();
     if(livePaymentApprovalError){ livePaymentApprovalError.style.display="none"; livePaymentApprovalError.textContent=""; }
     if(livePaymentApprovalConfirm){
       livePaymentApprovalConfirm.disabled=false;
-      livePaymentApprovalConfirm.textContent="Approve & Open 24-Hour Window";
+      livePaymentApprovalConfirm.textContent="Approve & Request Payment";
     }
   }
 
@@ -5515,7 +5521,7 @@ renderNav();renderDashboard();
     livePaymentApprovalDupr.textContent=`${reviewTotal.toFixed(2)} / ${Number(d.team_rating_cap||0).toFixed(2)}`;
     livePaymentApprovalFee.textContent=`₱${Number(d.registration_fee||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     if(livePaymentApprovalProjectedDue){
-      livePaymentApprovalProjectedDue.textContent=formatDateTime(new Date(Date.now()+(24*60*60*1000)));
+      livePaymentApprovalProjectedDue.textContent="No deadline";
     }
     livePaymentApprovalError.style.display="none";
     livePaymentApprovalError.textContent="";
@@ -5531,13 +5537,12 @@ renderNav();renderDashboard();
     try{
       const result=await api("approve_for_payment",{registrationId:ctx.registrationId});
       closeLivePaymentApproval();
-      const due=result.result?.dueAt?formatDateTime(result.result.dueAt):"24 hours from approval";
-      const mailStatus=result.result?.notification?.status;
+            const mailStatus=result.result?.notification?.status;
       showToast(
         "Approved for payment",
         mailStatus==="failed"||mailStatus==="log_failed"
-          ? `Payment window opened. Due ${due}. Team email delivery needs attention.`
-          : `Payment window opened. Due ${due}. Whole-team payment notices sent.`
+          ? `Payment requested (no deadline). Team email delivery needs attention.`
+          : `Payment requested (no deadline). Whole-team payment notices sent.`
       );
       await loadLiveRegistrations(true);
       renderNav();
@@ -5561,7 +5566,7 @@ renderNav();renderDashboard();
       livePaymentApprovalError.textContent=friendly;
       livePaymentApprovalError.style.display="block";
       livePaymentApprovalConfirm.disabled=false;
-      livePaymentApprovalConfirm.textContent="Approve & Open 24-Hour Window";
+      livePaymentApprovalConfirm.textContent="Approve & Request Payment";
     }
   }
 
@@ -6026,7 +6031,8 @@ renderNav();renderDashboard();
         <div class="panel-title"><h3>Payment snapshot</h3>${livePaymentBadge(r.payment_status)}</div>
         <div class="summary-grid" style="margin:0">
           <div class="summary-item"><label>Window</label><b>${esc(latestWindow?.status||"—")}</b></div>
-          <div class="summary-item"><label>Due</label><b>${esc(formatDateTime(latestWindow?.due_at))}</b></div>
+          <div class="summary-item"><label>Deadline</label><b>${esc(paymentDeadlineText(latestWindow))}</b></div>
+          <div class="summary-item"><label>Pending Since</label><b>${esc(paymentPendingSince(latestWindow))}</b></div>
           <div class="summary-item"><label>Amount</label><b>₱${Number(latestPayment?.amount??division.registration_fee??0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
           <div class="summary-item"><label>Method</label><b>${esc(latestPayment?.method||"—")}</b></div>
           <div class="summary-item"><label>Payment Reference</label><b class="ref">${esc(latestPayment?.provider_reference||"—")}</b></div>
@@ -6071,7 +6077,7 @@ renderNav();renderDashboard();
           ? `<span class="readonly-tag">PAYMENT SUBMITTED</span><button class="btn success" onclick="openLivePaymentReview('${esc(r.id)}')">Review & Verify Payment</button><button class="btn" onclick="closeDrawer()">Close</button>`
           : r.status==="payment_overdue"
             ? (hasPermission("payments_extend")
-                ? `<span class="readonly-tag">PAYMENT OVERDUE · SLOT RESERVED</span><button class="btn" onclick="openLiveOverdueDecision('${esc(r.id)}','extend')">Extend Deadline</button><button class="btn danger" onclick="openLiveOverdueDecision('${esc(r.id)}','cancel')">Cancel / Release Slot</button><button class="btn" onclick="closeDrawer()">Close</button>`
+                ? `<span class="readonly-tag">PAYMENT OVERDUE · SLOT RESERVED</span><button class="btn" onclick="openLiveOverdueDecision('${esc(r.id)}','extend')">Reopen Payment</button><button class="btn danger" onclick="openLiveOverdueDecision('${esc(r.id)}','cancel')">Cancel / Release Slot</button><button class="btn" onclick="closeDrawer()">Close</button>`
                 : `<span class="readonly-tag">PAYMENT OVERDUE · ADMIN DECISION REQUIRED</span><button class="btn" onclick="closeDrawer()">Close</button>`)
           : r.status==="action_required"
             ? `<span class="readonly-tag">ACTION REQUIRED · ${r.priority_protected_until?"PRIORITY PROTECTED":"PROTECTION EXPIRED"}</span>${canResolveActionRequired?`<button class="btn success" onclick="openLiveActionRequired('${esc(r.id)}','resolve')">Resolve Correction</button>`:""}<button class="btn" onclick="closeDrawer()">Close</button>`
@@ -6266,7 +6272,7 @@ renderNav();renderDashboard();
     liveOverdueDecisionContext=null;
     if(liveOverdueReason) liveOverdueReason.value="";
     if(liveOverdueError){liveOverdueError.style.display="none";liveOverdueError.textContent="";}
-    if(liveOverdueConfirm){liveOverdueConfirm.disabled=false;liveOverdueConfirm.textContent="Extend Deadline";liveOverdueConfirm.className="btn primary";}
+    if(liveOverdueConfirm){liveOverdueConfirm.disabled=false;liveOverdueConfirm.textContent="Reopen Payment";liveOverdueConfirm.className="btn primary";}
   }
 
   window.openLiveOverdueDecision=function(registrationId,mode="extend"){
@@ -6298,14 +6304,14 @@ renderNav();renderDashboard();
       liveOverdueConfirm.textContent="Cancel & Release Slot";
       liveOverdueConfirm.className="btn danger";
     }else{
-      liveOverdueTitle.textContent="Extend Payment Deadline";
-      liveOverdueHelp.textContent="Grant additional payment time while keeping the tournament slot reserved.";
+      liveOverdueTitle.textContent="Reopen Payment (No Deadline)";
+      liveOverdueHelp.textContent="This team became overdue under the earlier 24-hour rule. Reopen payment without a deadline, keeping the slot reserved.";
       liveOverdueExtensionWrap.style.display="block";
-      liveOverdueReason.placeholder="Required — reason for extending this overdue payment deadline.";
+      liveOverdueReason.placeholder="Required — reason for reopening payment for this team.";
       liveOverdueHours.value="24";
       updateLiveOverdueProjectedDue();
-      liveOverdueWarning.innerHTML="The registration returns to <b>Approved for Payment</b> with a new deadline calculated from now. The reserved slot stays protected.";
-      liveOverdueConfirm.textContent="Extend Deadline";
+      liveOverdueWarning.innerHTML="The registration returns to <b>Approved for Payment</b> with no payment deadline. The reserved slot stays held until the team pays or an Admin cancels the registration.";
+      liveOverdueConfirm.textContent="Reopen Payment";
       liveOverdueConfirm.className="btn primary";
     }
     liveOverdueDecisionModal.classList.add("open");
@@ -6323,7 +6329,7 @@ renderNav();renderDashboard();
     const isCancel=ctx.mode==="cancel";
     const extensionHours=Number(liveOverdueHours?.value||24);
     liveOverdueConfirm.disabled=true;
-    liveOverdueConfirm.textContent=isCancel?"Cancelling…":"Extending…";
+    liveOverdueConfirm.textContent=isCancel?"Cancelling…":"Reopening…";
     liveOverdueError.style.display="none";
     try{
       const data=await api(isCancel?"cancel_overdue_registration":"extend_payment_deadline",{
@@ -6339,7 +6345,7 @@ renderNav();renderDashboard();
       if(isCancel){
         showToast("Registration cancelled","The overdue registration was cancelled and its reserved slot was released.");
       }else{
-        showToast("Deadline extended",`A new ${extensionHours}-hour payment window is active and the slot remains reserved.`);
+        showToast("Payment reopened","The team can pay with no deadline, and the slot remains reserved.");
       }
       openLiveRegistration(ctx.registrationId);
     }catch(err){
@@ -6353,13 +6359,13 @@ renderNav();renderDashboard();
         PAYMENT_OVERDUE_PAYMENT_EXISTS:"A payment submission already exists. Use the payment-review workflow instead.",
         PAYMENT_EXTENSION_HOURS_INVALID:"Choose a valid extension between 1 and 168 hours.",
         PAYMENT_OVERDUE_REASON_REQUIRED:"A reason is required.",
-        PAYMENT_EXTENSION_WRITE_FAILED:"The deadline could not be extended. No partial change should be applied.",
+        PAYMENT_EXTENSION_WRITE_FAILED:"Payment could not be reopened. No partial change should be applied.",
         PAYMENT_OVERDUE_CANCEL_WRITE_FAILED:"The registration could not be cancelled. No partial slot release should be applied."
       }[code]||code;
       liveOverdueError.textContent=friendly;
       liveOverdueError.style.display="block";
       liveOverdueConfirm.disabled=false;
-      liveOverdueConfirm.textContent=isCancel?"Cancel & Release Slot":"Extend Deadline";
+      liveOverdueConfirm.textContent=isCancel?"Cancel & Release Slot":"Reopen Payment";
     }
   }
 
@@ -6465,19 +6471,19 @@ renderNav();renderDashboard();
           const assigned=canManageUsers()?adminUsersData.filter(u=>u.role===r.key && u.active).length:null;
           const assignmentText=assigned===null?"Assignments restricted":`${assigned} active user${assigned===1?"":"s"} assigned`;
           const roleAction=!allowRoleWrites
-            ? `<button class="mini-btn" onclick="viewRole('${r.key}')">View Permissions</button>`
+            ? `<button class="mini-btn" data-role-action="view" data-role-key="${esc(r.key)}">View Permissions</button>`
             : r.key==="owner"
-              ? `<button class="mini-btn" onclick="viewRole('${r.key}')">View Protected Permissions</button>`
+              ? `<button class="mini-btn" data-role-action="view" data-role-key="${esc(r.key)}">View Protected Permissions</button>`
               : r.builtIn
-                ? `<button class="mini-btn" onclick="openRoleModal('${r.key}')">Manage Permissions</button>`
-                : `<button class="mini-btn" onclick="openRoleModal('${r.key}')">Edit Role</button><button class="mini-btn" onclick="deleteRole('${r.key}')">Delete</button>`;
+                ? `<button class="mini-btn" data-role-action="edit" data-role-key="${esc(r.key)}">Manage Permissions</button>`
+                : `<button class="mini-btn" data-role-action="edit" data-role-key="${esc(r.key)}">Edit Role</button><button class="mini-btn" data-role-action="delete" data-role-key="${esc(r.key)}">Delete</button>`;
           return `<div class="role-manager-card ${r.builtIn?"":"custom"}">
             <div class="role-manager-head">
-              <div><h4>${r.name}</h4><small>${r.description}</small><small>${assignmentText}</small></div>
+              <div><h4>${esc(r.name)}</h4><small>${esc(r.description)}</small><small>${assignmentText}</small></div>
               <span class="audit-chip">${r.key==="owner"?"Protected":r.builtIn?"Built-in":"Custom"}</span>
             </div>
             <div class="permission-chips">
-              ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${permissionCatalog.find(x=>x.key===p)?.label||p}</span>`).join("")}
+              ${r.permissions.slice(0,5).map(p=>`<span class="permission-chip">${esc(permissionCatalog.find(x=>x.key===p)?.label||p)}</span>`).join("")}
               ${r.permissions.length>5?`<span class="permission-chip">+${r.permissions.length-5} more</span>`:""}
             </div>
             <div class="role-actions">${roleAction}</div>
@@ -6487,6 +6493,16 @@ renderNav();renderDashboard();
     </div>`;
   };
 
+
+  // Role buttons carry the role key in a data attribute, never inside inline JavaScript.
+  document.addEventListener("click",e=>{
+    const btn=e.target.closest?.("[data-role-action]");
+    if(!btn) return;
+    const key=btn.dataset.roleKey;
+    if(btn.dataset.roleAction==="view") window.viewRole(key);
+    else if(btn.dataset.roleAction==="edit") window.openRoleModal(key);
+    else if(btn.dataset.roleAction==="delete") window.deleteRole(key);
+  });
 
   window.renderAdminUsers = function(){
     if(!canManageAccess()){
@@ -6502,12 +6518,12 @@ renderNav();renderDashboard();
         ${canManageUsers()?`<button class="btn primary" onclick="openAddAdminUser()">+ Add Admin User</button>`:""}</div>
       ${canManageUsers()?`<div class="user-grid">${adminUsersData.map(u=>`<div class="user-card">
         <div class="user-card-head">
-          <div><h3>${u.name}</h3><div class="dim">${u.email}</div>
-            <div class="user-meta">${u.title?`<span class="audit-chip">${u.title}</span>`:""}${u.mobile?`<span class="audit-chip">${u.mobile}</span>`:""}</div>
+          <div><h3>${esc(u.name)}</h3><div class="dim">${esc(u.email)}</div>
+            <div class="user-meta">${u.title?`<span class="audit-chip">${esc(u.title)}</span>`:""}${u.mobile?`<span class="audit-chip">${esc(u.mobile)}</span>`:""}</div>
           </div>
           <span class="pill ${u.active?"p-ok":"p-wait"}">${u.active?"Active":"Disabled"}</span>
         </div>
-        <div class="lineitem"><span>Role</span><b>${roleDisplayName(u.role)}</b></div>
+        <div class="lineitem"><span>Role</span><b>${esc(roleDisplayName(u.role))}</b></div>
         <div class="lineitem"><span>Permissions</span><b>${roleByKey(u.role)?.permissions.length||0}</b></div>
         <div class="actionbar right">
           <button class="mini-btn" onclick="openEditAdminUser(${u.id})">Edit Details</button>
@@ -6624,8 +6640,8 @@ renderNav();renderDashboard();
       : "Your current access allows you to view, but not modify, these permissions.";
     rolePermissionGrid.innerHTML=permissionCatalog.map(p=>`
       <label class="permission-option">
-        <input type="checkbox" data-permission="${p.key}" disabled ${role.permissions.includes(p.key)?"checked":""}>
-        <span><b>${p.label}</b><small>${p.desc}</small></span>
+        <input type="checkbox" data-permission="${esc(p.key)}" disabled ${role.permissions.includes(p.key)?"checked":""}>
+        <span><b>${esc(p.label)}</b><small>${esc(p.desc)}</small></span>
       </label>`).join("");
     if(saveButton)saveButton.style.display="none";
     if(cancelButton)cancelButton.textContent="Close";
@@ -6681,8 +6697,8 @@ renderNav();renderDashboard();
 
     rolePermissionGrid.innerHTML=permissionCatalog.map(p=>`
       <label class="permission-option">
-        <input type="checkbox" data-permission="${p.key}" ${role?.permissions.includes(p.key)?"checked":""}>
-        <span><b>${p.label}</b><small>${p.desc}</small></span>
+        <input type="checkbox" data-permission="${esc(p.key)}" ${role?.permissions.includes(p.key)?"checked":""}>
+        <span><b>${esc(p.label)}</b><small>${esc(p.desc)}</small></span>
       </label>`).join("");
 
     setRoleStatus(builtIn?"Ready · changes autosave":"","");
