@@ -142,6 +142,7 @@ tbody tr[data-id]:hover{background:#171b20}
 .summary-item{border:1px solid var(--line);background:#14181d;border-radius:10px;padding:11px}
 .summary-item label{font-size:8px;letter-spacing:.13em;color:#7f8994;font-weight:900;text-transform:uppercase;display:block}
 .summary-item b{display:block;margin-top:5px;font-size:13px}
+.team-logo-thumb{margin-top:7px;width:72px;height:72px;border:1px solid var(--line);border-radius:10px;background:#0a0d11;display:grid;place-items:center;overflow:hidden;padding:0;color:#7f8994;font-size:10px;cursor:pointer}.team-logo-thumb img{display:block;width:100%;height:100%;object-fit:contain}.team-logo-thumb:disabled{cursor:default}
 .review-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px}
 .review-main{display:flex;flex-direction:column;gap:12px}
 .review-side{display:flex;flex-direction:column;gap:12px}
@@ -826,7 +827,7 @@ tbody tr[data-id]:hover{background:#171b20}
 <div class="modal" id="proofModal">
   <div class="modal-card wide">
     <div class="modal-head">
-      <div><div class="eyebrow">PRIVATE PAYMENT PROOF</div><h3 id="proofModalTitle">Payment proof</h3><p>Secure in-app preview using a short-lived signed URL from the private Supabase bucket.</p></div>
+      <div><div class="eyebrow" id="proofModalEyebrow">PRIVATE PAYMENT PROOF</div><h3 id="proofModalTitle">Payment proof</h3><p>Secure in-app preview using a short-lived signed URL from the private Supabase bucket.</p></div>
       <button class="close" onclick="closeProof()">✕</button>
     </div>
     <div class="proof-large" id="proofLarge"><div><b>Payment proof preview</b>Private signed asset shown here in production.</div></div>
@@ -5597,6 +5598,46 @@ renderNav();renderDashboard();
     if(livePaymentVerifyProof){ livePaymentVerifyProof.disabled=false; livePaymentVerifyProof.textContent="View Payment Proof"; }
   }
 
+  // Team logos sit in a private bucket; admins get a short-lived signed URL from admin-access, as for payment proofs.
+  const liveTeamLogoUrls=new Map();
+  async function liveTeamLogoUrl(registrationId){
+    const cached=liveTeamLogoUrls.get(registrationId);
+    if(cached&&cached.until>Date.now()) return cached.url;
+    const data=await api("team_logo_url",{registrationId});
+    const url=data.result?.signedUrl;
+    if(!url) throw new Error("TEAM_LOGO_URL_FAILED");
+    liveTeamLogoUrls.set(registrationId,{url,until:Date.now()+240000});
+    return url;
+  }
+  async function loadLiveTeamLogoThumb(registrationId){
+    try{
+      const url=await liveTeamLogoUrl(registrationId);
+      const thumb=document.getElementById("liveTeamLogoThumb");
+      if(thumb&&thumb.dataset.registrationId===registrationId){
+        thumb.innerHTML=`<img src="${escapeAttr(url)}" alt="Team logo" referrerpolicy="no-referrer">`;
+      }
+    }catch(err){
+      const thumb=document.getElementById("liveTeamLogoThumb");
+      if(thumb&&thumb.dataset.registrationId===registrationId){ thumb.textContent="Unavailable"; thumb.disabled=true; }
+    }
+  }
+  window.openLiveTeamLogo=async function(registrationId){
+    try{
+      const url=await liveTeamLogoUrl(registrationId);
+      const r=getLiveRegistrationRows().find(x=>x.id===registrationId);
+      const eyebrow=document.getElementById("proofModalEyebrow");
+      if(eyebrow) eyebrow.textContent="TEAM LOGO";
+      if(proofModalTitle) proofModalTitle.textContent=[r?.team_name,"Team logo"].filter(Boolean).join(" · ");
+      if(proofLarge){
+        proofLarge.classList.add("live-proof-viewer");
+        proofLarge.innerHTML=`<img src="${escapeAttr(url)}" alt="Team logo" referrerpolicy="no-referrer">`;
+      }
+      proofModal?.classList.add("open");
+    }catch(err){
+      showToast("Could not load team logo",String(err?.message||"TEAM_LOGO_URL_FAILED"));
+    }
+  };
+
   window.openLivePaymentProof=async function(paymentId){
     if(!hasPermission("payments_view")){
       showToast("Access restricted","Your role cannot view private payment proofs.");
@@ -5615,6 +5656,8 @@ renderNav();renderDashboard();
       const ctx=livePaymentVerifyContext||{};
       const r=getLiveRegistrationRows().find(x=>x.id===ctx.registrationId);
       const payment=r?latestLivePayment(r):null;
+      const eyebrow=document.getElementById("proofModalEyebrow");
+      if(eyebrow) eyebrow.textContent="PRIVATE PAYMENT PROOF";
       if(proofModalTitle){
         const team=r?.team_name||"Payment proof";
         const method=payment?.method||"";
@@ -5970,6 +6013,7 @@ renderNav();renderDashboard();
       <div class="summary-grid">
         <div class="summary-item"><label>Division</label><b>${esc(division.name||division.code||"—")}</b>${canChangeDivision?`<button class="mini-btn" style="margin-top:8px" onclick="openLiveDivisionChange('${esc(r.id)}')">Change Division</button>`:""}</div>
         <div class="summary-item"><label>Team DUPR</label><b>${reviewTotal.toFixed(2)} / ${teamCap.toFixed(2)}</b><small>${reviewTotal!==submittedTotal?`Submitted ${submittedTotal.toFixed(2)}`:"Current review total"}</small></div>
+        <div class="summary-item"><label>Team Logo</label>${r.team_logo_path?`<button type="button" class="team-logo-thumb" id="liveTeamLogoThumb" data-registration-id="${esc(r.id)}" onclick="openLiveTeamLogo('${esc(r.id)}')" title="View team logo">Loading…</button>`:"<b>None uploaded</b>"}</div>
         <div class="summary-item"><label>Registration Source</label><b>${r.source==="admin"?"Admin":"Player Portal"}</b></div>
         <div class="summary-item"><label>Slot</label><b>${r.holds_slot?"Reserved":"Not reserved"}</b></div>
         <div class="summary-item"><label>Payment</label><b>${esc(liveRegistrationPaymentLabel(r))}</b></div>
@@ -6103,6 +6147,7 @@ renderNav();renderDashboard();
     }
 
     drawer.classList.add("open");
+    if(r.team_logo_path) loadLiveTeamLogoThumb(r.id);
   };
 
 
