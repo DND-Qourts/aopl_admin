@@ -5313,7 +5313,7 @@ renderNav();renderDashboard();
     liveAdminRegLogo=null;
     document.getElementById("liveAdminRegRoster").innerHTML=[1,2,3,4].map(i=>`
       <div class="player-block" data-admin-reg-player="${i}">
-        <div class="player-head"><b>Player ${i} · ${i<=2?"Male":"Female"}</b><label class="captain-radio"><input type="radio" name="liveAdminRegCaptain" value="${i}" ${i===1?"checked":""} style="width:auto"> Team Captain</label></div>
+        <div class="player-head"><b>Player ${i} · ${i<=2?"Male":"Female"}</b><label class="captain-radio"><input type="radio" name="liveAdminRegCaptain" value="${i}" ${i===1?"checked":""} style="width:auto;accent-color:var(--red)"> Team Captain</label></div>
         <div class="addreg-grid">
           <div class="fieldx"><label>Full Name <span class="req">*</span></label><input data-f="fullName" maxlength="120"></div>
           <div class="fieldx"><label>Email <span class="req">*</span></label><input data-f="email" type="email" maxlength="180"></div>
@@ -5342,6 +5342,7 @@ renderNav();renderDashboard();
   function liveAdminRegCheck(reg){
     if(!reg.divisionId) return "Choose an open division.";
     if(reg.teamName.length<2) return "Enter a team name of 2 to 48 characters.";
+    if(reg.players.filter(p=>p.captain).length!==1) return "Choose the Team Captain (tick the circle next to one player).";
     for(const [n,p] of reg.players.entries()){
       const who=`Player ${n+1}`;
       if(p.fullName.length<2) return `${who}: enter the full name.`;
