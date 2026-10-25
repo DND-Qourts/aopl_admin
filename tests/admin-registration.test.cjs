@@ -63,6 +63,7 @@ test('the button shows only for registrations_edit, and the form offers only ope
   await page.click('#liveAdminRegOpen');
   const options = await page.locator('#liveAdminRegDivision option').evaluateAll(o => o.map(x => x.value));
   assert.deepStrictEqual(options, ['D14', 'D16'], 'D12 is closed, so it is not offered');
+  assert.strictEqual(await page.locator('[data-admin-reg-player="1"] input[name="liveAdminRegCaptain"]').isChecked(), true, 'player 1 is captain by default');
   assert.ok(await page.locator('#liveAdminRegEmailRow').isVisible());
   assert.strictEqual(await page.locator('#liveAdminRegConfirm').isDisabled(), false);
   await context.close();
@@ -116,6 +117,10 @@ test('the form checks fields before sending, and consent is required', async () 
   await page.click('#liveAdminRegConfirm');
   assert.match(await page.locator('#liveAdminRegError').innerText(), /Player 1: enter a DUPR rating/);
   await page.fill('[data-admin-reg-player="1"] [data-f=submittedDupr]', '3.00');
+  await page.evaluate(() => document.querySelectorAll('input[name="liveAdminRegCaptain"]').forEach(r => { r.checked = false; }));
+  await page.click('#liveAdminRegConfirm');
+  assert.match(await page.locator('#liveAdminRegError').innerText(), /Choose the Team Captain/);
+  await page.check('[data-admin-reg-player="3"] input[name="liveAdminRegCaptain"]');
   await page.uncheck('#liveAdminRegConsent');
   await page.click('#liveAdminRegConfirm');
   assert.match(await page.locator('#liveAdminRegError').innerText(), /Confirm that the team has read the rules/);
