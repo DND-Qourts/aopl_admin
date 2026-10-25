@@ -1202,6 +1202,44 @@ tbody tr[data-id]:hover{background:#171b20}
 </div>
 
 
+<div class="modal" id="liveAdminRegistrationModal">
+  <div class="modal-card wide">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">ADMIN REGISTRATION · LIVE</div>
+        <h3>Add team registration</h3>
+        <p>Register a team on its behalf. The same rules as the public form apply: registration and the division must be open, 2 men and 2 women, exactly one captain, the DUPR limits, and no player already on another team. The entry is marked as added by an admin.</p>
+      </div>
+      <button class="close" id="liveAdminRegClose" type="button">✕</button>
+    </div>
+    <div class="admin-note" id="liveAdminRegNotice" style="display:none"></div>
+    <div class="form-section">
+      <h4>Team information</h4>
+      <p>The team starts as <b>Under Review</b> while the division has a free slot, otherwise it joins the waitlist, exactly as a public entry would.</p>
+      <div class="addreg-grid">
+        <div class="fieldx"><label>Division <span class="req">*</span></label><select id="liveAdminRegDivision"></select></div>
+        <div class="fieldx"><label>Team Name <span class="req">*</span></label><input id="liveAdminRegTeam" maxlength="48" placeholder="2 to 48 characters"></div>
+        <div class="fieldx"><label>Team Logo (optional)</label><input id="liveAdminRegLogo" type="file" accept="image/png,image/jpeg,image/webp"><small class="dim" style="font-size:10px">PNG, JPG or WebP, up to 2 MB.</small></div>
+        <div class="fieldx"><label>Internal Admin Note</label><input id="liveAdminRegNote" maxlength="500" placeholder="Optional, kept in the activity log"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <h4>4-player roster</h4>
+      <p>Players 1 and 2 are men, players 3 and 4 are women. Every field is required, as on the public form. Tick NR for a player with no DUPR rating (the DUPR ID is still required).</p>
+      <div id="liveAdminRegRoster"></div>
+    </div>
+    <div class="form-section">
+      <label class="captain-radio" style="font-size:11px"><input id="liveAdminRegConsent" type="checkbox" style="width:auto"> The team has read the league rules and all four players agreed to be registered (this replaces the acknowledgement and consent boxes of the public form).</label>
+      <label class="captain-radio" id="liveAdminRegEmailRow" style="font-size:11px;margin-top:8px"><input id="liveAdminRegEmail" type="checkbox" style="width:auto" checked> Email the team the usual "registration received" message.</label>
+    </div>
+    <div class="inline-danger" id="liveAdminRegError" style="display:none;margin-top:12px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="liveAdminRegCancel" type="button">Cancel</button>
+      <button class="btn primary" id="liveAdminRegConfirm" type="button">Create Registration</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="liveRosterReplacementModal">
   <div class="modal-card">
     <div class="modal-head">
@@ -3790,6 +3828,7 @@ renderNav();renderDashboard();
     if(!res.ok || !data.ok){
       const err = new Error(data.error || `HTTP_${res.status}`);
       err.status=res.status;
+      if(data.detail) err.detail=data.detail;
       throw err;
     }
     return data;
@@ -4403,6 +4442,7 @@ renderNav();renderDashboard();
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
           ${hasPermission("dupr_review")?`<span class="readonly-tag">DUPR REVIEW ENABLED</span>`:`<span class="readonly-tag">READ ONLY</span>`}
+          ${hasPermission("registrations_edit")?`<button class="btn primary" id="liveAdminRegOpen" onclick="openLiveAdminRegistration()">+ Add Registration</button>`:""}
           <button class="btn" id="liveRegistrationRefresh" onclick="refreshLiveRegistrations()">Refresh</button>
         </div>
       </div>
@@ -5282,6 +5322,163 @@ renderNav();renderDashboard();
   liveRosterReplacementCancel?.addEventListener("click",closeLiveRosterReplacement);
   liveRosterReplacementConfirm?.addEventListener("click",submitLiveRosterReplacement);
   liveRosterReplacementModal?.addEventListener("click",e=>{if(e.target===liveRosterReplacementModal) closeLiveRosterReplacement();});
+
+  // ----- Admin team registration (live): same rules as the public form, via admin-access create_registration
+  const liveAdminRegModal=document.getElementById("liveAdminRegistrationModal");
+  const liveAdminRegConfirm=document.getElementById("liveAdminRegConfirm");
+  const liveAdminRegError=document.getElementById("liveAdminRegError");
+  const LIVE_ADMIN_REG_SHIRTS=["2XS","XS","S","M","L","XL","2XL","3XL"];
+  let liveAdminRegLogo=null;
+
+  function liveAdminRegOpenDivisions(){
+    return (liveRegistrationsSnapshot?.divisions||[]).filter(d=>d.is_open===true);
+  }
+  function closeLiveAdminRegistration(){
+    liveAdminRegModal?.classList.remove("open");
+    liveAdminRegLogo=null;
+  }
+  window.openLiveAdminRegistration=function(){
+    if(!hasPermission("registrations_edit")) return showToast("Access restricted","Your role cannot add registrations.");
+    const eventStatus=String(liveRegistrationsSnapshot?.event?.status||"");
+    const divisions=liveAdminRegOpenDivisions();
+    const notice=document.getElementById("liveAdminRegNotice");
+    const closedReason=eventStatus&&eventStatus!=="registration_open"
+      ? "Registration is closed for the event, so teams cannot be added (the same rule as the public form)."
+      : (!divisions.length?"No division is open, so teams cannot be added (the same rule as the public form).":"");
+    notice.textContent=closedReason;
+    notice.style.display=closedReason?"block":"none";
+    document.getElementById("liveAdminRegDivision").innerHTML=divisions.map(d=>`<option value="${esc(d.code)}">${esc(d.name||d.code)} · ${Number(d.remaining??0)} slot${Number(d.remaining)===1?"":"s"} left · team limit ${esc(d.team_rating_cap)}, player limit ${esc(d.player_rating_cap)}</option>`).join("");
+    document.getElementById("liveAdminRegTeam").value="";
+    document.getElementById("liveAdminRegNote").value="";
+    document.getElementById("liveAdminRegLogo").value="";
+    document.getElementById("liveAdminRegConsent").checked=false;
+    const canEmail=hasPermission("communications_send");
+    document.getElementById("liveAdminRegEmailRow").style.display=canEmail?"flex":"none";
+    document.getElementById("liveAdminRegEmail").checked=canEmail;
+    liveAdminRegLogo=null;
+    document.getElementById("liveAdminRegRoster").innerHTML=[1,2,3,4].map(i=>`
+      <div class="player-block" data-admin-reg-player="${i}">
+        <div class="player-head"><b>Player ${i} · ${i<=2?"Male":"Female"}</b><label class="captain-radio"><input type="radio" name="liveAdminRegCaptain" value="${i}" ${i===1?"checked":""} style="width:auto"> Team Captain</label></div>
+        <div class="addreg-grid">
+          <div class="fieldx"><label>Full Name <span class="req">*</span></label><input data-f="fullName" maxlength="120"></div>
+          <div class="fieldx"><label>Email <span class="req">*</span></label><input data-f="email" type="email" maxlength="180"></div>
+          <div class="fieldx"><label>Mobile <span class="req">*</span></label><input data-f="mobile" maxlength="11" placeholder="09XXXXXXXXX"></div>
+          <div class="fieldx"><label>DUPR ID <span class="req">*</span></label><input data-f="duprId" maxlength="30"></div>
+          <div class="fieldx"><label>DUPR Rating <span class="req">*</span></label><input data-f="submittedDupr" type="text" maxlength="5" autocomplete="off" inputmode="decimal" placeholder="0.00"><label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600"><input data-f="isNr" type="checkbox" style="width:auto" onchange="this.closest('.fieldx').querySelector('[data-f=submittedDupr]').disabled=this.checked"> NR (no DUPR rating)</label></div>
+          <div class="fieldx"><label>Shirt Size <span class="req">*</span></label><select data-f="shirtSize"><option value="">Select</option>${LIVE_ADMIN_REG_SHIRTS.map(s=>`<option>${s}</option>`).join("")}</select></div>
+        </div>
+      </div>`).join("");
+    liveAdminRegError.style.display="none";
+    liveAdminRegConfirm.disabled=!!closedReason;
+    liveAdminRegConfirm.textContent="Create Registration";
+    liveAdminRegModal.classList.add("open");
+  };
+
+  function liveAdminRegPayload(){
+    const captain=Number(document.querySelector('input[name="liveAdminRegCaptain"]:checked')?.value||0);
+    const players=[...document.querySelectorAll("[data-admin-reg-player]")].map(block=>{
+      const i=Number(block.dataset.adminRegPlayer);
+      const v=f=>String(block.querySelector(`[data-f="${f}"]`)?.value||"").trim();
+      const isNr=!!block.querySelector('[data-f="isNr"]')?.checked;
+      return {gender:i<=2?"Male":"Female",fullName:v("fullName"),email:v("email"),mobile:v("mobile"),duprId:v("duprId").toUpperCase(),isNr,submittedDupr:isNr?null:v("submittedDupr"),shirtSize:v("shirtSize"),captain:i===captain};
+    });
+    return {divisionId:String(document.getElementById("liveAdminRegDivision").value||""),teamName:String(document.getElementById("liveAdminRegTeam").value||"").trim(),players};
+  }
+  function liveAdminRegCheck(reg){
+    if(!reg.divisionId) return "Choose an open division.";
+    if(reg.teamName.length<2) return "Enter a team name of 2 to 48 characters.";
+    for(const [n,p] of reg.players.entries()){
+      const who=`Player ${n+1}`;
+      if(p.fullName.length<2) return `${who}: enter the full name.`;
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email)) return `${who}: enter a valid email address.`;
+      if(!/^09[0-9]{9}$/.test(p.mobile)) return `${who}: the mobile number must be 11 digits starting with 09.`;
+      if(!p.duprId) return `${who}: enter the DUPR ID.`;
+      if(!p.isNr && !liveRatingText(p.submittedDupr||"")) return `${who}: enter a DUPR rating above 0.00 and up to 9.00 with at most two decimals, or tick NR.`;
+      if(!p.shirtSize) return `${who}: choose a shirt size.`;
+    }
+    if(!document.getElementById("liveAdminRegConsent").checked) return "Confirm that the team has read the rules and all four players agreed to be registered.";
+    return "";
+  }
+  document.getElementById("liveAdminRegLogo")?.addEventListener("change",e=>{
+    liveAdminRegLogo=null;
+    const file=e.target.files?.[0];
+    if(!file) return;
+    if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){
+      e.target.value="";
+      liveAdminRegError.textContent="The team logo must be a PNG, JPG or WebP image of 2 MB or less.";
+      liveAdminRegError.style.display="block";
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=()=>{ liveAdminRegLogo={fileName:file.name,dataUrl:String(reader.result||"")}; };
+    reader.readAsDataURL(file);
+  });
+
+  const LIVE_ADMIN_REG_ERRORS={
+    REGISTRATION_CLOSED:"Registration is closed, so teams cannot be added (the same rule as the public form).",
+    REGISTRATION_NOT_OPEN:"Registration has not opened yet.",
+    DIVISION_CLOSED:"This division is closed, so teams cannot be added to it.",
+    INVALID_DIVISION:"Choose an open division.",
+    INVALID_TEAM_NAME:"Enter a team name of 2 to 48 characters.",
+    INVALID_GENDER_COMPOSITION:"The roster must have exactly 2 men and 2 women.",
+    EXACTLY_ONE_CAPTAIN_REQUIRED:"Choose exactly one Team Captain.",
+    TEAM_DUPR_CAP_EXCEEDED:"The team's DUPR total is over this division's team limit.",
+    PLAYER_DUPR_CAP_EXCEEDED:"A player's DUPR rating is over this division's player limit.",
+    DUPLICATE_DUPR_IN_ROSTER:"The same DUPR ID is used twice on this roster.",
+    PLAYER_ALREADY_REGISTERED:"One or more players are already on another active team.",
+    INVALID_EMAIL:"One or more email addresses are invalid.",
+    INVALID_MOBILE:"One or more mobile numbers are invalid (11 digits starting with 09).",
+    INVALID_DUPR_ID:"One or more DUPR IDs are invalid.",
+    INVALID_DUPR_RATING:"One or more DUPR ratings are invalid.",
+    INVALID_SHIRT_SIZE:"One or more shirt sizes are invalid.",
+    INVALID_PLAYER_NAME:"Enter each player's full name.",
+    TEAM_LOGO_INVALID:"The team logo must be a PNG, JPG or WebP image.",
+    TEAM_LOGO_TOO_LARGE:"The team logo must be 2 MB or less.",
+    TEAM_LOGO_UPLOAD_FAILED:"The team logo could not be uploaded. Try again, or add the team without a logo.",
+    ADMIN_REGISTRATION_CONSENT_REQUIRED:"Confirm that the team has read the rules and all four players agreed to be registered.",
+    ADMIN_FORBIDDEN:"Your role cannot add registrations."
+  };
+
+  async function submitLiveAdminRegistration(){
+    const registration=liveAdminRegPayload();
+    const problem=liveAdminRegCheck(registration);
+    if(problem){ liveAdminRegError.textContent=problem; liveAdminRegError.style.display="block"; return; }
+    const payload={
+      registration,
+      adminNote:String(document.getElementById("liveAdminRegNote").value||"").trim(),
+      teamConsentConfirmed:true,
+      emailTeam:hasPermission("communications_send")&&!!document.getElementById("liveAdminRegEmail").checked
+    };
+    if(liveAdminRegLogo?.dataUrl) payload.teamLogo=liveAdminRegLogo;
+    liveAdminRegConfirm.disabled=true;
+    liveAdminRegConfirm.textContent="Creating…";
+    liveAdminRegError.style.display="none";
+    try{
+      const res=await api("create_registration",payload);
+      const result=res.result||{};
+      closeLiveAdminRegistration();
+      const waitlisted=String(result.statusCode||result.status||"").toLowerCase().includes("wait");
+      const mail=result.notification||{};
+      const mailNote=mail.status==="sent"?" · team emailed":(mail.status==="not_requested"?"":" · the email was not sent, use Resend from the team's page");
+      showToast("Team added",`${result.reference||"Registration"} · ${result.teamName||registration.teamName} · ${waitlisted?`Waitlisted${result.waitlistPosition?` #${result.waitlistPosition}`:""}`:"Under Review"}${mailNote}`);
+      await loadLiveRegistrations(true);
+      renderNav();
+      if(currentView==="registrations") renderLiveRegistrations(false);
+      if(result.registrationId) openLiveRegistration(result.registrationId);
+    }catch(err){
+      const code=String(err?.message||"ADMIN_REGISTRATION_FAILED");
+      const base=LIVE_ADMIN_REG_ERRORS[code]||`The team could not be added (${code}).`;
+      liveAdminRegError.textContent=err?.detail?`${base} (${err.detail})`:base;
+      liveAdminRegError.style.display="block";
+      liveAdminRegConfirm.disabled=false;
+      liveAdminRegConfirm.textContent="Create Registration";
+    }
+  }
+
+  document.getElementById("liveAdminRegClose")?.addEventListener("click",closeLiveAdminRegistration);
+  document.getElementById("liveAdminRegCancel")?.addEventListener("click",closeLiveAdminRegistration);
+  liveAdminRegConfirm?.addEventListener("click",submitLiveAdminRegistration);
+  liveAdminRegModal?.addEventListener("click",e=>{if(e.target===liveAdminRegModal) closeLiveAdminRegistration();});
 
   let liveCaptainChangeContext=null;
   const liveCaptainChangeModal=document.getElementById("liveCaptainChangeModal");
