@@ -37,7 +37,7 @@ window.supabase = { createClient: function () { return { auth: {
 
 /**
  * Opens the admin page with all backend traffic mocked.
- * `handlers` maps an admin-access action name to a response body (or function).
+ * `handlers` maps an admin-access action name to a response body (or function). A body with `__status` is sent as that error.
  */
 async function openAdmin(browser, baseUrl, handlers, pagePath = '/index.html') {
   const context = await browser.newContext();
@@ -62,6 +62,7 @@ async function openAdmin(browser, baseUrl, handlers, pagePath = '/index.html') {
       const h = handlers[action];
       const body = typeof h === 'function' ? h(payload) : h;
       if (!body) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'TEST_UNMOCKED_' + action }) });
+      if (body.__status) { const { __status, ...rest } = body; return route.fulfill({ status: __status, contentType: 'application/json', body: JSON.stringify({ ok: false, ...rest }) }); }
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, ...body }) });
     }
     if (url.hostname === 'x' || url.pathname === '/x') return route.fulfill({ status: 404, body: '' });
