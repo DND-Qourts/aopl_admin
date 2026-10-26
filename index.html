@@ -164,6 +164,7 @@ tbody tr[data-id]:hover{background:#171b20}
 .event:first-child i{background:var(--red)}
 .event b{font-size:12px}
 .event small{display:block;color:#7f8994;margin-top:3px}
+.update-bar{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;display:flex;gap:14px;align-items:center;max-width:min(92vw,720px);padding:10px 14px;border:1px solid #6a3a33;border-left:3px solid var(--red);border-radius:12px;background:#1b1210;color:#f1d6d0;font-size:12px;line-height:1.5;box-shadow:0 12px 40px rgba(0,0,0,.5)}.update-bar[hidden]{display:none}.update-bar .btn{white-space:nowrap}
 .toast{position:fixed;right:20px;bottom:20px;z-index:80;background:#171c22;border:1px solid #3a424c;border-radius:10px;padding:12px 14px;box-shadow:var(--shadow);display:none;max-width:380px}
 .toast.show{display:block}
 .toast b{display:block;margin-bottom:3px}
@@ -1041,6 +1042,7 @@ tbody tr[data-id]:hover{background:#171b20}
   </div>
 </div>
 
+<div class="update-bar" id="updateBar" hidden><span>A newer version of the Admin is available. Reload to get the latest fixes before reviewing anything.</span><button class="btn primary" type="button" onclick="location.reload()">Reload now</button></div>
 <div class="toast" id="toast"><b id="toastTitle"></b><span id="toastText"></span></div>
 
 
@@ -3411,6 +3413,24 @@ renderNav();renderDashboard();
 <!-- supabase-js 2.118.0, self-hosted and pinned (was an unpinned jsDelivr @2 script). Update: see vendor/README.md -->
 <script src="./vendor/supabase-js-2.118.0.umd.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK"></script>
 <script src="./config.js"></script>
+<script>
+// A tab left open across a release keeps running the old page: it showed an NR player as 0.00 and could not verify them.
+// Every 5 minutes and when the tab comes back into view, compare this page's Last-Modified with the live one and offer a reload.
+(()=>{
+  const loadedAt=Date.parse(document.lastModified)||0;
+  let shown=false;
+  async function checkForNewVersion(){
+    if(shown||!loadedAt) return;
+    try{
+      const res=await fetch(location.pathname,{method:"HEAD",cache:"no-store"});
+      const live=Date.parse(res.headers.get("last-modified")||"");
+      if(live&&live>loadedAt+1000){ shown=true; document.getElementById("updateBar").hidden=false; }
+    }catch(e){ /* offline or blocked: try again later */ }
+  }
+  setInterval(checkForNewVersion,5*60*1000);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkForNewVersion(); });
+})();
+</script>
 <script>
 (() => {
   "use strict";
