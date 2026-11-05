@@ -1281,6 +1281,36 @@ tbody tr[data-id]:hover{background:#171b20}
   </div>
 </div>
 
+<div class="modal" id="livePlayerNameModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">ROSTER GOVERNANCE · ADMIN ONLY</div>
+        <h3>Edit Player Name</h3>
+        <p>Correct a spelling mistake in a player's name. Use Replace for a different player.</p>
+      </div>
+      <button class="close" id="livePlayerNameClose" type="button">✕</button>
+    </div>
+    <div class="summary-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+      <div class="summary-item"><label>Team</label><b id="livePlayerNameTeam">—</b></div>
+      <div class="summary-item"><label>Current Name</label><b id="livePlayerNameCurrent">—</b></div>
+    </div>
+    <div class="fieldx">
+      <label>Corrected Name <span class="req">*</span></label>
+      <input id="livePlayerNameInput" maxlength="120" autocomplete="off">
+    </div>
+    <div class="fieldx" style="margin-top:10px">
+      <label>Reason <span class="req">*</span></label>
+      <textarea id="livePlayerNameReason" maxlength="600" placeholder="For example: typo in the registration form, confirmed with the player."></textarea>
+    </div>
+    <div class="note" style="margin-top:10px">Only the name changes. DUPR, verification, slot, captain, payment and team status stay as they are. The change is recorded in the audit log.</div>
+    <div class="inline-danger" id="livePlayerNameError" style="display:none;margin-top:12px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="livePlayerNameCancel" type="button">Cancel</button>
+      <button class="btn primary" id="livePlayerNameConfirm" type="button">Save Name</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="liveCaptainChangeModal">
   <div class="modal-card">
     <div class="modal-head">
@@ -5501,6 +5531,84 @@ renderNav();renderDashboard();
   liveAdminRegConfirm?.addEventListener("click",submitLiveAdminRegistration);
   liveAdminRegModal?.addEventListener("click",e=>{if(e.target===liveAdminRegModal) closeLiveAdminRegistration();});
 
+  let livePlayerNameContext=null;
+  const livePlayerNameModal=document.getElementById("livePlayerNameModal");
+  const livePlayerNameClose=document.getElementById("livePlayerNameClose");
+  const livePlayerNameCancel=document.getElementById("livePlayerNameCancel");
+  const livePlayerNameConfirm=document.getElementById("livePlayerNameConfirm");
+  const livePlayerNameTeam=document.getElementById("livePlayerNameTeam");
+  const livePlayerNameCurrent=document.getElementById("livePlayerNameCurrent");
+  const livePlayerNameInput=document.getElementById("livePlayerNameInput");
+  const livePlayerNameReason=document.getElementById("livePlayerNameReason");
+  const livePlayerNameError=document.getElementById("livePlayerNameError");
+  const cleanPlayerName=v=>String(v||"").trim().replace(/\s+/g," ");
+
+  function closeLivePlayerName(){
+    livePlayerNameModal?.classList.remove("open");
+    livePlayerNameContext=null;
+    livePlayerNameInput.value="";
+    livePlayerNameReason.value="";
+    livePlayerNameError.style.display="none";
+    livePlayerNameError.textContent="";
+    livePlayerNameConfirm.disabled=false;
+    livePlayerNameConfirm.textContent="Save Name";
+  }
+
+  window.openLivePlayerName=function(registrationId,registrationPlayerId){
+    if(!hasPermission("registrations_edit")) return showToast("Access restricted","Your role cannot edit player names.");
+    const r=getLiveRegistrationRows().find(x=>x.id===registrationId);
+    const m=(r?.players||[]).find(x=>x.id===registrationPlayerId);
+    if(!r||!m) return;
+    if(["cancelled","rejected","withdrawn"].includes(r.status)) return showToast("Roster locked","This registration is closed and cannot be edited.");
+    const current=m.player?.full_name||"";
+    livePlayerNameContext={registrationId,registrationPlayerId,current};
+    livePlayerNameTeam.textContent=r.team_name||"—";
+    livePlayerNameCurrent.textContent=current||"—";
+    livePlayerNameInput.value=current;
+    livePlayerNameReason.value="";
+    livePlayerNameError.style.display="none";
+    livePlayerNameModal.classList.add("open");
+    livePlayerNameInput.focus();
+  };
+
+  async function submitLivePlayerName(){
+    if(!livePlayerNameContext) return;
+    const fullName=cleanPlayerName(livePlayerNameInput.value);
+    const reason=String(livePlayerNameReason.value||"").trim();
+    const fail=t=>{livePlayerNameError.textContent=t;livePlayerNameError.style.display="block";};
+    if(fullName.length<2||fullName.length>120) return fail("Enter the corrected name (2 to 120 characters).");
+    if(fullName===livePlayerNameContext.current) return fail("The name is unchanged. Edit the name before saving.");
+    if(reason.length<3) return fail("Enter a reason for the correction.");
+    livePlayerNameConfirm.disabled=true;
+    livePlayerNameConfirm.textContent="Saving…";
+    try{
+      const ctx={...livePlayerNameContext};
+      const res=await api("correct_player_name",{registrationId:ctx.registrationId,registrationPlayerId:ctx.registrationPlayerId,fullName,reason});
+      closeLivePlayerName();
+      showToast("Name corrected",`${res.result?.oldName||ctx.current} → ${res.result?.newName||fullName}`);
+      await loadLiveRegistrations(true);
+      renderNav();
+      openLiveRegistration(ctx.registrationId);
+    }catch(err){
+      const code=String(err?.message||"PLAYER_NAME_WRITE_FAILED");
+      fail({
+        ADMIN_FORBIDDEN:"Your role cannot edit player names.",
+        PLAYER_NAME_INVALID:"Enter the corrected name (2 to 120 characters).",
+        PLAYER_NAME_NO_CHANGE:"The name is unchanged. Edit the name before saving.",
+        PLAYER_NAME_REASON_REQUIRED:"Enter a reason for the correction.",
+        PLAYER_NAME_STATUS_INVALID:"This registration is closed and cannot be edited.",
+        REGISTRATION_PLAYER_NOT_FOUND:"This player is no longer on the team. Reload and try again."
+      }[code]||code);
+      livePlayerNameConfirm.disabled=false;
+      livePlayerNameConfirm.textContent="Save Name";
+    }
+  }
+
+  livePlayerNameClose?.addEventListener("click",closeLivePlayerName);
+  livePlayerNameCancel?.addEventListener("click",closeLivePlayerName);
+  livePlayerNameConfirm?.addEventListener("click",submitLivePlayerName);
+  livePlayerNameModal?.addEventListener("click",e=>{if(e.target===livePlayerNameModal) closeLivePlayerName();});
+
   let liveCaptainChangeContext=null;
   const liveCaptainChangeModal=document.getElementById("liveCaptainChangeModal");
   const liveCaptainChangeClose=document.getElementById("liveCaptainChangeClose");
@@ -6273,6 +6381,7 @@ renderNav();renderDashboard();
     const reviewUnlocked=(["under_review","action_required","waitlisted"].includes(r.status)||confirmedRosterRevalidation)&&!r.eligibility_locked_at;
     const canReviewDupr=hasPermission("dupr_review")&&reviewUnlocked;
     const canGovernRoster=hasPermission("registrations_edit")&&!["cancelled","rejected","withdrawn"].includes(r.status)&&r.payment_status!=="submitted";
+    const canEditNames=hasPermission("registrations_edit")&&!["cancelled","rejected","withdrawn"].includes(r.status);
     const canChangeDivision=hasPermission("registrations_edit")
       &&["under_review","waitlisted"].includes(r.status)
       &&r.payment_status==="not_requested"
@@ -6359,8 +6468,11 @@ renderNav();renderDashboard();
                 ${canEdit?`<button class="mini-btn" style="margin-left:7px" onclick="openLiveDuprReview('${esc(r.id)}','${esc(m.id)}')">${verified?"Review":isNr?"Confirm NR":"Verify"}</button>`:""}
               </td>
               <td>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
                 ${canGovernRoster?`<button class="mini-btn" onclick="openLiveRosterReplacement('${esc(r.id)}','${esc(m.id)}')">Replace</button>`:""}
-                ${canGovernRoster&&!m.is_captain?`<button class="mini-btn" style="margin-left:6px" onclick="openLiveCaptainChange('${esc(r.id)}','${esc(m.id)}')">Make Captain</button>`:""}
+                ${canGovernRoster&&!m.is_captain?`<button class="mini-btn" onclick="openLiveCaptainChange('${esc(r.id)}','${esc(m.id)}')">Make Captain</button>`:""}
+                ${canEditNames?`<button class="mini-btn" onclick="openLivePlayerName('${esc(r.id)}','${esc(m.id)}')">Edit Name</button>`:""}
+                </div>
               </td>
             </tr>`;
           }).join("")}
