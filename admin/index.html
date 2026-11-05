@@ -1277,6 +1277,36 @@ tbody tr[data-id]:hover{background:#171b20}
   </div>
 </div>
 
+<div class="modal" id="liveTeamNameModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">REGISTRATION · ADMIN ONLY</div>
+        <h3>Edit Team Name</h3>
+        <p>Correct or update the team's name.</p>
+      </div>
+      <button class="close" id="liveTeamNameClose" type="button">✕</button>
+    </div>
+    <div class="summary-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+      <div class="summary-item"><label>Reference</label><b id="liveTeamNameReference">—</b></div>
+      <div class="summary-item"><label>Current Team Name</label><b id="liveTeamNameCurrent">—</b></div>
+    </div>
+    <div class="fieldx">
+      <label>New Team Name <span class="req">*</span></label>
+      <input id="liveTeamNameInput" maxlength="48" autocomplete="off">
+    </div>
+    <div class="fieldx" style="margin-top:10px">
+      <label>Reason <span class="req">*</span></label>
+      <textarea id="liveTeamNameReason" maxlength="600" placeholder="For example: typo in the registration form, confirmed with the captain."></textarea>
+    </div>
+    <div class="note" style="margin-top:10px">Only the team name changes. Roster, DUPR, slot, payment and status stay as they are. The change is recorded in the audit log.</div>
+    <div class="inline-danger" id="liveTeamNameError" style="display:none;margin-top:12px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="liveTeamNameCancel" type="button">Cancel</button>
+      <button class="btn primary" id="liveTeamNameConfirm" type="button">Save Team Name</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="livePlayerNameModal">
   <div class="modal-card">
     <div class="modal-head">
@@ -5466,6 +5496,82 @@ renderNav();renderDashboard();
   liveAdminRegConfirm?.addEventListener("click",submitLiveAdminRegistration);
   liveAdminRegModal?.addEventListener("click",e=>{if(e.target===liveAdminRegModal) closeLiveAdminRegistration();});
 
+  let liveTeamNameContext=null;
+  const liveTeamNameModal=document.getElementById("liveTeamNameModal");
+  const liveTeamNameClose=document.getElementById("liveTeamNameClose");
+  const liveTeamNameCancel=document.getElementById("liveTeamNameCancel");
+  const liveTeamNameConfirm=document.getElementById("liveTeamNameConfirm");
+  const liveTeamNameReference=document.getElementById("liveTeamNameReference");
+  const liveTeamNameCurrent=document.getElementById("liveTeamNameCurrent");
+  const liveTeamNameInput=document.getElementById("liveTeamNameInput");
+  const liveTeamNameReason=document.getElementById("liveTeamNameReason");
+  const liveTeamNameError=document.getElementById("liveTeamNameError");
+
+  function closeLiveTeamName(){
+    liveTeamNameModal?.classList.remove("open");
+    liveTeamNameContext=null;
+    liveTeamNameInput.value="";
+    liveTeamNameReason.value="";
+    liveTeamNameError.style.display="none";
+    liveTeamNameError.textContent="";
+    liveTeamNameConfirm.disabled=false;
+    liveTeamNameConfirm.textContent="Save Team Name";
+  }
+
+  window.openLiveTeamName=function(registrationId){
+    if(!hasPermission("registrations_edit")) return showToast("Access restricted","Your role cannot edit team names.");
+    const r=getLiveRegistrationRows().find(x=>x.id===registrationId);
+    if(!r) return;
+    if(["cancelled","rejected","withdrawn"].includes(r.status)) return showToast("Registration closed","This registration is closed and cannot be edited.");
+    const current=r.team_name||"";
+    liveTeamNameContext={registrationId,current};
+    liveTeamNameReference.textContent=r.reference||"—";
+    liveTeamNameCurrent.textContent=current||"—";
+    liveTeamNameInput.value=current;
+    liveTeamNameReason.value="";
+    liveTeamNameError.style.display="none";
+    liveTeamNameModal.classList.add("open");
+    liveTeamNameInput.focus();
+  };
+
+  async function submitLiveTeamName(){
+    if(!liveTeamNameContext) return;
+    const teamName=String(liveTeamNameInput.value||"").trim().replace(/\s+/g," ");
+    const reason=String(liveTeamNameReason.value||"").trim();
+    const fail=t=>{liveTeamNameError.textContent=t;liveTeamNameError.style.display="block";};
+    if(teamName.length<2||teamName.length>48) return fail("Enter the new team name (2 to 48 characters).");
+    if(teamName===liveTeamNameContext.current) return fail("The team name is unchanged. Edit it before saving.");
+    if(reason.length<3) return fail("Enter a reason for the change.");
+    liveTeamNameConfirm.disabled=true;
+    liveTeamNameConfirm.textContent="Saving…";
+    try{
+      const ctx={...liveTeamNameContext};
+      const res=await api("correct_team_name",{registrationId:ctx.registrationId,teamName,reason});
+      closeLiveTeamName();
+      showToast("Team name updated",`${res.result?.oldName||ctx.current} → ${res.result?.newName||teamName}`);
+      await loadLiveRegistrations(true);
+      renderNav();
+      openLiveRegistration(ctx.registrationId);
+    }catch(err){
+      const code=String(err?.message||"TEAM_NAME_WRITE_FAILED");
+      fail({
+        ADMIN_FORBIDDEN:"Your role cannot edit team names.",
+        TEAM_NAME_INVALID:"Enter the new team name (2 to 48 characters).",
+        TEAM_NAME_NO_CHANGE:"The team name is unchanged. Edit it before saving.",
+        TEAM_NAME_REASON_REQUIRED:"Enter a reason for the change.",
+        TEAM_NAME_STATUS_INVALID:"This registration is closed and cannot be edited.",
+        TEAM_NAME_TAKEN:"Another active team already uses this name. Choose a different name."
+      }[code]||code);
+      liveTeamNameConfirm.disabled=false;
+      liveTeamNameConfirm.textContent="Save Team Name";
+    }
+  }
+
+  liveTeamNameClose?.addEventListener("click",closeLiveTeamName);
+  liveTeamNameCancel?.addEventListener("click",closeLiveTeamName);
+  liveTeamNameConfirm?.addEventListener("click",submitLiveTeamName);
+  liveTeamNameModal?.addEventListener("click",e=>{if(e.target===liveTeamNameModal) closeLiveTeamName();});
+
   let livePlayerNameContext=null;
   const livePlayerNameModal=document.getElementById("livePlayerNameModal");
   const livePlayerNameClose=document.getElementById("livePlayerNameClose");
@@ -6319,6 +6425,7 @@ renderNav();renderDashboard();
 
     drawerBody.innerHTML=`
       <div class="summary-grid">
+        <div class="summary-item"><label>Team Name</label><b>${esc(r.team_name||"—")}</b>${canEditNames?`<button class="mini-btn" style="margin-top:8px" onclick="openLiveTeamName('${esc(r.id)}')">Edit Team Name</button>`:""}</div>
         <div class="summary-item"><label>Division</label><b>${esc(division.name||division.code||"—")}</b>${canChangeDivision?`<button class="mini-btn" style="margin-top:8px" onclick="openLiveDivisionChange('${esc(r.id)}')">Change Division</button>`:""}</div>
         <div class="summary-item"><label>Team DUPR</label><b>${reviewTotal.toFixed(2)} / ${teamCap.toFixed(2)}</b><small>${reviewTotal!==submittedTotal?`Submitted ${submittedTotal.toFixed(2)}`:"Current review total"}</small></div>
         <div class="summary-item"><label>Team Logo</label>${r.team_logo_path?`<button type="button" class="team-logo-thumb" id="liveTeamLogoThumb" data-registration-id="${esc(r.id)}" onclick="openLiveTeamLogo('${esc(r.id)}')" title="View team logo">Loading…</button>`:"<b>None uploaded</b>"}</div>
