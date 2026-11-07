@@ -33,14 +33,14 @@ async function openDrawer(reg, more = {}) {
 const cashButton = page => page.locator('#drawerFoot button', { hasText: 'Record Cash Payment' });
 const cashCalls = calls => calls.filter(c => c.action === 'record_cash_payment');
 
-test('Record Cash Payment confirms the team with the receipt and note, after the admin confirms the amount', async () => {
+test('Record Cash Payment confirms the team with a generated payment reference, after the admin confirms the amount', async () => {
   const reg = awaitingPayment();
   let saved = null;
   const more = {
-    record_cash_payment: p => { saved = p; return { result: { teamName: 'Cash Team', registrationStatus: 'confirmed', method: 'Cash', notification: { status: 'sent' } } }; },
+    record_cash_payment: p => { saved = p; return { result: { teamName: 'Cash Team', registrationStatus: 'confirmed', method: 'Cash', paymentReference: 'CASH-0001', notification: { status: 'sent' } } }; },
     registrations_snapshot: () => {
       if (saved) Object.assign(reg, { status: 'confirmed', payment_status: 'verified',
-        payments: [{ id: 'pay1', status: 'verified', amount: 7000, method: 'Cash', provider_reference: saved.receiptReference, submitted_at: '2026-11-07T00:00:00Z', verified_at: '2026-11-07T00:00:00Z', proof_path: null }] });
+        payments: [{ id: 'pay1', status: 'verified', amount: 7000, method: 'Cash', provider_reference: 'CASH-0001', submitted_at: '2026-11-07T00:00:00Z', verified_at: '2026-11-07T00:00:00Z', proof_path: null }] });
       return { registrations: [reg], divisions: [], summary: { total: 1, statusCounts: {} }, event: { id: 'ev' }, warnings: [] };
     }
   };
@@ -50,9 +50,8 @@ test('Record Cash Payment confirms the team with the receipt and note, after the
   await page.waitForSelector('#liveCashPaymentModal.open');
   assert.strictEqual(await page.locator('#liveCashPaymentAmount').innerText(), '₱7,000.00');
   assert.match(await page.locator('#liveCashPaymentConfirmText').innerText(), /full ₱7,000\.00 was received in cash/);
-  await page.click('#liveCashPaymentConfirm');
-  assert.match(await page.locator('#liveCashPaymentError').innerText(), /receipt or OR number/);
-  await page.fill('#liveCashPaymentReceipt', '  OR-0012 ');
+  assert.strictEqual(await page.locator('#liveCashPaymentModal input:not([type=checkbox])').count(), 0, 'no receipt or OR number to type');
+  assert.match(await page.locator('#liveCashPaymentModal').innerText(), /Created automatically \(CASH-0001/);
   await page.click('#liveCashPaymentConfirm');
   assert.match(await page.locator('#liveCashPaymentError').innerText(), /Tick the box/);
   assert.strictEqual(cashCalls(calls).length, 0, 'nothing sent before the amount is confirmed');
@@ -60,11 +59,12 @@ test('Record Cash Payment confirms the team with the receipt and note, after the
   await page.check('#liveCashPaymentConfirmCheck');
   await page.click('#liveCashPaymentConfirm');
   await page.waitForSelector('#liveCashPaymentModal:not(.open)', { state: 'attached' });
-  assert.deepStrictEqual(cashCalls(calls).map(c => c.payload), [{ registrationId: reg.id, receiptReference: 'OR-0012', note: 'Received at the clinic' }]);
+  assert.deepStrictEqual(cashCalls(calls).map(c => c.payload), [{ registrationId: reg.id, note: 'Received at the clinic' }]);
+  assert.match(await page.locator('#toastText').innerText(), /Payment reference: CASH-0001\./);
   await page.waitForFunction(() => /CONFIRMED/.test(document.getElementById('drawerFoot')?.innerText || ''));
   const snap = await page.locator('.panel').filter({ hasText: 'Payment snapshot' }).innerText();
   assert.match(snap, /Cash/);
-  assert.match(snap, /OR-0012/);
+  assert.match(snap, /CASH-0001/);
   assert.strictEqual(await cashButton(page).count(), 0);
   assert.deepStrictEqual(calls.filter(c => c.pageerror), []);
   await context.close();
@@ -93,7 +93,6 @@ test('no Record Cash for a role without payments_verify, or for a team not yet a
 test('a refusal from the server is shown in plain words and the modal stays open', async () => {
   const { page, context } = await openDrawer(awaitingPayment(), { record_cash_payment: { __status: 400, error: 'CASH_PAYMENT_PROOF_PENDING' } });
   await cashButton(page).click();
-  await page.fill('#liveCashPaymentReceipt', 'OR-0099');
   await page.check('#liveCashPaymentConfirmCheck');
   await page.click('#liveCashPaymentConfirm');
   await page.waitForFunction(() => document.getElementById('liveCashPaymentError').style.display === 'block');

@@ -1289,19 +1289,16 @@ tbody tr[data-id]:hover{background:#171b20}
     </div>
     <div class="summary-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
       <div class="summary-item"><label>Team</label><b id="liveCashPaymentTeam">—</b></div>
-      <div class="summary-item"><label>Reference</label><b id="liveCashPaymentReference">—</b></div>
+      <div class="summary-item"><label>Registration Ref</label><b id="liveCashPaymentReference">—</b></div>
       <div class="summary-item"><label>Amount</label><b id="liveCashPaymentAmount">—</b></div>
     </div>
+    <div class="summary-item" style="margin-bottom:10px"><label>Payment Reference</label><b>Created automatically (CASH-0001, CASH-0002, …)</b></div>
     <div class="fieldx">
-      <label>Receipt / OR Number <span class="req">*</span></label>
-      <input id="liveCashPaymentReceipt" maxlength="180" autocomplete="off" placeholder="For example: OR-0012">
-    </div>
-    <div class="fieldx" style="margin-top:10px">
       <label>Note</label>
       <textarea id="liveCashPaymentNote" maxlength="500" placeholder="Optional: who received it, where and when."></textarea>
     </div>
     <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input id="liveCashPaymentConfirmCheck" type="checkbox" style="width:auto"> <span id="liveCashPaymentConfirmText">I confirm the full amount was received in cash.</span></label>
-    <div class="note" style="margin-top:10px">This records a Cash payment, verifies it and confirms the team in one step, exactly like verifying a proof. The team gets the usual confirmation email. It is recorded in the audit log with your name.</div>
+    <div class="note" style="margin-top:10px">This records a Cash payment with a new payment reference number, verifies it and confirms the team in one step, exactly like verifying a proof. The team gets the usual confirmation email, which shows the payment reference. It is recorded in the audit log with your name.</div>
     <div class="inline-danger" id="liveCashPaymentError" style="display:none;margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="liveCashPaymentCancel" type="button">Cancel</button>
@@ -5536,7 +5533,6 @@ renderNav();renderDashboard();
   const liveCashPaymentTeam=document.getElementById("liveCashPaymentTeam");
   const liveCashPaymentReference=document.getElementById("liveCashPaymentReference");
   const liveCashPaymentAmount=document.getElementById("liveCashPaymentAmount");
-  const liveCashPaymentReceipt=document.getElementById("liveCashPaymentReceipt");
   const liveCashPaymentNote=document.getElementById("liveCashPaymentNote");
   const liveCashPaymentConfirmCheck=document.getElementById("liveCashPaymentConfirmCheck");
   const liveCashPaymentConfirmText=document.getElementById("liveCashPaymentConfirmText");
@@ -5546,7 +5542,6 @@ renderNav();renderDashboard();
   function closeLiveCashPayment(){
     liveCashPaymentModal?.classList.remove("open");
     liveCashPaymentContext=null;
-    liveCashPaymentReceipt.value="";
     liveCashPaymentNote.value="";
     liveCashPaymentConfirmCheck.checked=false;
     liveCashPaymentError.style.display="none";
@@ -5566,30 +5561,28 @@ renderNav();renderDashboard();
     liveCashPaymentReference.textContent=r.reference||"—";
     liveCashPaymentAmount.textContent=pesoText(division.registration_fee);
     liveCashPaymentConfirmText.textContent=`I confirm the full ${pesoText(division.registration_fee)} was received in cash.`;
-    liveCashPaymentReceipt.value="";
     liveCashPaymentNote.value="";
     liveCashPaymentConfirmCheck.checked=false;
     liveCashPaymentError.style.display="none";
     liveCashPaymentModal.classList.add("open");
-    liveCashPaymentReceipt.focus();
+    liveCashPaymentNote.focus();
   };
 
   async function submitLiveCashPayment(){
     if(!liveCashPaymentContext) return;
-    const receiptReference=String(liveCashPaymentReceipt.value||"").trim().replace(/\s+/g," ");
     const note=String(liveCashPaymentNote.value||"").trim();
     const fail=t=>{liveCashPaymentError.textContent=t;liveCashPaymentError.style.display="block";};
-    if(receiptReference.length<2) return fail("Enter the receipt or OR number (or a short reference for this cash payment).");
     if(!liveCashPaymentConfirmCheck.checked) return fail("Tick the box to confirm the full amount was received.");
     liveCashPaymentConfirm.disabled=true;
     liveCashPaymentConfirm.textContent="Recording…";
     try{
       const ctx={...liveCashPaymentContext};
-      const res=await api("record_cash_payment",{registrationId:ctx.registrationId,receiptReference,note});
+      const res=await api("record_cash_payment",{registrationId:ctx.registrationId,note});
       closeLiveCashPayment();
       const mail=res.result?.notification;
       const mailNote=mail&&mail.status==="failed"?" The confirmation email could not be sent; use Send Confirmation Email.":"";
-      showToast("Cash payment recorded",`${res.result?.teamName||"Team"} is now Confirmed.${mailNote}`);
+      const payRef=res.result?.paymentReference?` Payment reference: ${res.result.paymentReference}.`:"";
+      showToast("Cash payment recorded",`${res.result?.teamName||"Team"} is now Confirmed.${payRef}${mailNote}`);
       await loadLiveRegistrations(true);
       renderNav();
       openLiveRegistration(ctx.registrationId);
@@ -5597,7 +5590,6 @@ renderNav();renderDashboard();
       const code=String(err?.message||"CASH_PAYMENT_WRITE_FAILED");
       fail({
         ADMIN_FORBIDDEN:"Your role cannot verify payments.",
-        CASH_PAYMENT_RECEIPT_REQUIRED:"Enter the receipt or OR number (or a short reference for this cash payment).",
         CASH_PAYMENT_PROOF_PENDING:"This team already sent a payment proof. Review and verify or reject that proof first.",
         CASH_PAYMENT_STATUS_INVALID:"This team is not waiting for payment. Reload to see its current status.",
         PAYMENT_WINDOW_NOT_FOUND:"This team has no open payment window. Reload to see its current status.",
