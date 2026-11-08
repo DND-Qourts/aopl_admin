@@ -1281,6 +1281,35 @@ tbody tr[data-id]:hover{background:#171b20}
   </div>
 </div>
 
+<div class="modal" id="liveCashPaymentModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">PAYMENT · FINANCE ONLY</div>
+        <h3>Record Cash Payment</h3>
+        <p>For a team that paid the registration fee in cash instead of sending a proof.</p>
+      </div>
+      <button class="close" id="liveCashPaymentClose" type="button">✕</button>
+    </div>
+    <div class="summary-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+      <div class="summary-item"><label>Team</label><b id="liveCashPaymentTeam">—</b></div>
+      <div class="summary-item"><label>Registration Ref</label><b id="liveCashPaymentReference">—</b></div>
+      <div class="summary-item"><label>Amount</label><b id="liveCashPaymentAmount">—</b></div>
+    </div>
+    <div class="summary-item" style="margin-bottom:10px"><label>Payment Reference</label><b>Created automatically (CASH-0001, CASH-0002, …)</b></div>
+    <div class="fieldx">
+      <label>Note</label>
+      <textarea id="liveCashPaymentNote" maxlength="500" placeholder="Optional: who received it, where and when."></textarea>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input id="liveCashPaymentConfirmCheck" type="checkbox" style="width:auto"> <span id="liveCashPaymentConfirmText">I confirm the full amount was received in cash.</span></label>
+    <div class="note" style="margin-top:10px">This records a Cash payment with a new payment reference number, verifies it and confirms the team in one step, exactly like verifying a proof. The team gets the usual confirmation email, which shows the payment reference. It is recorded in the audit log with your name.</div>
+    <div class="inline-danger" id="liveCashPaymentError" style="display:none;margin-top:12px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="liveCashPaymentCancel" type="button">Cancel</button>
+      <button class="btn success" id="liveCashPaymentConfirm" type="button">Record Cash &amp; Confirm Team</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="liveTeamNameModal">
   <div class="modal-card">
     <div class="modal-head">
@@ -5561,6 +5590,86 @@ renderNav();renderDashboard();
   liveAdminRegConfirm?.addEventListener("click",submitLiveAdminRegistration);
   liveAdminRegModal?.addEventListener("click",e=>{if(e.target===liveAdminRegModal) closeLiveAdminRegistration();});
 
+  let liveCashPaymentContext=null;
+  const liveCashPaymentModal=document.getElementById("liveCashPaymentModal");
+  const liveCashPaymentClose=document.getElementById("liveCashPaymentClose");
+  const liveCashPaymentCancel=document.getElementById("liveCashPaymentCancel");
+  const liveCashPaymentConfirm=document.getElementById("liveCashPaymentConfirm");
+  const liveCashPaymentTeam=document.getElementById("liveCashPaymentTeam");
+  const liveCashPaymentReference=document.getElementById("liveCashPaymentReference");
+  const liveCashPaymentAmount=document.getElementById("liveCashPaymentAmount");
+  const liveCashPaymentNote=document.getElementById("liveCashPaymentNote");
+  const liveCashPaymentConfirmCheck=document.getElementById("liveCashPaymentConfirmCheck");
+  const liveCashPaymentConfirmText=document.getElementById("liveCashPaymentConfirmText");
+  const liveCashPaymentError=document.getElementById("liveCashPaymentError");
+  const pesoText=v=>`₱${Number(v||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
+  function closeLiveCashPayment(){
+    liveCashPaymentModal?.classList.remove("open");
+    liveCashPaymentContext=null;
+    liveCashPaymentNote.value="";
+    liveCashPaymentConfirmCheck.checked=false;
+    liveCashPaymentError.style.display="none";
+    liveCashPaymentError.textContent="";
+    liveCashPaymentConfirm.disabled=false;
+    liveCashPaymentConfirm.textContent="Record Cash & Confirm Team";
+  }
+
+  window.openLiveCashPayment=function(registrationId){
+    if(!hasPermission("payments_verify")) return showToast("Access restricted","Your role cannot verify payments.");
+    const r=getLiveRegistrationRows().find(x=>x.id===registrationId);
+    if(!r) return;
+    if(r.status!=="approved_for_payment"||r.payment_status!=="requested") return showToast("Not available","Cash can be recorded only for a team approved for payment with no proof waiting for review.");
+    const division=r.division||liveDivisionById(r.division_id)||{};
+    liveCashPaymentContext={registrationId};
+    liveCashPaymentTeam.textContent=r.team_name||"—";
+    liveCashPaymentReference.textContent=r.reference||"—";
+    liveCashPaymentAmount.textContent=pesoText(division.registration_fee);
+    liveCashPaymentConfirmText.textContent=`I confirm the full ${pesoText(division.registration_fee)} was received in cash.`;
+    liveCashPaymentNote.value="";
+    liveCashPaymentConfirmCheck.checked=false;
+    liveCashPaymentError.style.display="none";
+    liveCashPaymentModal.classList.add("open");
+    liveCashPaymentNote.focus();
+  };
+
+  async function submitLiveCashPayment(){
+    if(!liveCashPaymentContext) return;
+    const note=String(liveCashPaymentNote.value||"").trim();
+    const fail=t=>{liveCashPaymentError.textContent=t;liveCashPaymentError.style.display="block";};
+    if(!liveCashPaymentConfirmCheck.checked) return fail("Tick the box to confirm the full amount was received.");
+    liveCashPaymentConfirm.disabled=true;
+    liveCashPaymentConfirm.textContent="Recording…";
+    try{
+      const ctx={...liveCashPaymentContext};
+      const res=await api("record_cash_payment",{registrationId:ctx.registrationId,note});
+      closeLiveCashPayment();
+      const mail=res.result?.notification;
+      const mailNote=mail&&mail.status==="failed"?" The confirmation email could not be sent; use Send Confirmation Email.":"";
+      const payRef=res.result?.paymentReference?` Payment reference: ${res.result.paymentReference}.`:"";
+      showToast("Cash payment recorded",`${res.result?.teamName||"Team"} is now Confirmed.${payRef}${mailNote}`);
+      await loadLiveRegistrations(true);
+      renderNav();
+      openLiveRegistration(ctx.registrationId);
+    }catch(err){
+      const code=String(err?.message||"CASH_PAYMENT_WRITE_FAILED");
+      fail({
+        ADMIN_FORBIDDEN:"Your role cannot verify payments.",
+        CASH_PAYMENT_PROOF_PENDING:"This team already sent a payment proof. Review and verify or reject that proof first.",
+        CASH_PAYMENT_STATUS_INVALID:"This team is not waiting for payment. Reload to see its current status.",
+        PAYMENT_WINDOW_NOT_FOUND:"This team has no open payment window. Reload to see its current status.",
+        PAYMENT_SLOT_NOT_RESERVED:"This team no longer holds a slot, so it cannot be confirmed."
+      }[code]||code);
+      liveCashPaymentConfirm.disabled=false;
+      liveCashPaymentConfirm.textContent="Record Cash & Confirm Team";
+    }
+  }
+
+  liveCashPaymentClose?.addEventListener("click",closeLiveCashPayment);
+  liveCashPaymentCancel?.addEventListener("click",closeLiveCashPayment);
+  liveCashPaymentConfirm?.addEventListener("click",submitLiveCashPayment);
+  liveCashPaymentModal?.addEventListener("click",e=>{if(e.target===liveCashPaymentModal) closeLiveCashPayment();});
+
   let liveTeamNameContext=null;
   const liveTeamNameModal=document.getElementById("liveTeamNameModal");
   const liveTeamNameClose=document.getElementById("liveTeamNameClose");
@@ -6670,7 +6779,7 @@ renderNav();renderDashboard();
             : r.status==="approved_for_payment"&&r.payment_status==="submitted"
               ? `<span class="readonly-tag">AWAITING FINANCE REVIEW</span><button class="btn" onclick="closeDrawer()">Close</button>`
               : r.status==="approved_for_payment"
-                ? `<span class="readonly-tag">PAYMENT WINDOW OPEN</span><button class="btn" onclick="closeDrawer()">Close</button>`
+                ? `<span class="readonly-tag">PAYMENT WINDOW OPEN</span>${hasPermission("payments_verify")&&r.payment_status==="requested"?`<button class="btn success" onclick="openLiveCashPayment('${esc(r.id)}')">Record Cash Payment</button>`:""}<button class="btn" onclick="closeDrawer()">Close</button>`
                 : `<span class="readonly-tag">READ ONLY</span><button class="btn" onclick="closeDrawer()">Close</button>`;
 
     if(canCancelRegistration && r.status!=="payment_overdue"){
