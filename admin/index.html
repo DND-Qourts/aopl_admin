@@ -4072,11 +4072,23 @@ renderNav();renderDashboard();
       header=["Reference","Team","Registration Status","Player","Gender","Shirt Size"];
       active.forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.status,m.player?.full_name||"",m.player?.gender||"",m.shirt_size||""])));
     }
+    if(type==="rosters"){
+      const teams=active.map(r=>({r,members:liveRosterMembers(r)})).sort((x,y)=>String(x.r.division?.name||x.r.division?.code||"").localeCompare(String(y.r.division?.name||y.r.division?.code||""))||String(x.r.team_name||"").localeCompare(String(y.r.team_name||""),undefined,{sensitivity:"base"}));
+      const width=Math.max(0,...teams.map(t=>t.members.length));
+      header=["Reference","Team","Division","Status","Payment Status","Players"];
+      for(let i=1;i<=width;i++)header.push(i===1?"Captain":`Player ${i}`);
+      rows=teams.map(({r,members})=>{const row=[r.reference,r.team_name,r.division?.name||r.division?.code,r.status,r.payment_status,members.length];for(let i=0;i<width;i++)row.push(members[i]?.player?.full_name||"");return row});
+    }
     if(type==="contacts"){
       header=["Reference","Team","Status","Player","Role","Email","Mobile"];
       active.forEach(r=>(r.players||[]).filter(m=>m.active_entry!==false).forEach(m=>rows.push([r.reference,r.team_name,r.status,m.player?.full_name||"",m.is_captain?"Captain":`Player ${m.slot||""}`,m.player?.email||"",m.player?.mobile||""])));
     }
     return {header,rows};
+  }
+
+  // Active roster of one registration: captain first, then by slot.
+  function liveRosterMembers(r){
+    return (r.players||[]).filter(m=>m.active_entry!==false).slice().sort((x,y)=>(y.is_captain?1:0)-(x.is_captain?1:0)||Number(x.slot||0)-Number(y.slot||0));
   }
 
   window.exportLiveReport=function(type){
@@ -4112,6 +4124,7 @@ renderNav();renderDashboard();
           ${hasPermission("payments_view")?`<div class="report-card"><h3>Financial Reconciliation</h3><div class="lineitem"><span>Verified collected</span><b>₱${collected.toLocaleString("en-PH",{minimumFractionDigits:2})}</b></div><div class="lineitem"><span>Open payment value</span><b>₱${openValue.toLocaleString("en-PH",{minimumFractionDigits:2})}</b></div><div class="lineitem"><span>Submitted proofs</span><b>${submitted.length}</b></div><div class="report-actions">${btn("payments")}</div></div>`:""}
           <div class="report-card"><h3>Registration Operations</h3><div class="lineitem"><span>Total records</span><b>${all.length}</b></div><div class="lineitem"><span>Active registrations</span><b>${active.length}</b></div><div class="lineitem"><span>Confirmed teams</span><b>${confirmed.length}</b></div><div class="report-actions">${btn("registrations")}</div></div>
           <div class="report-card"><h3>Confirmed Roster</h3><div class="lineitem"><span>Confirmed teams</span><b>${confirmed.length}</b></div><div class="lineitem"><span>Confirmed players</span><b>${confirmed.reduce((s,r)=>s+(r.players||[]).filter(m=>m.active_entry!==false).length,0)}</b></div><div class="report-actions">${btn("confirmed")}</div></div>
+          <div class="report-card"><h3>Team Rosters</h3><div class="lineitem"><span>Active teams</span><b>${active.length}</b></div><div class="lineitem"><span>Active players</span><b>${players}</b></div><div class="lineitem"><span>One row per team</span><b>Captain + players</b></div><div class="report-actions">${btn("rosters")}</div></div>
           <div class="report-card"><h3>Outstanding Actions</h3><div class="lineitem"><span>Under Review</span><b>${active.filter(r=>r.status==="under_review").length}</b></div><div class="lineitem"><span>Action Required</span><b>${active.filter(r=>r.status==="action_required").length}</b></div><div class="lineitem"><span>Waitlisted</span><b>${active.filter(r=>r.status==="waitlisted").length}</b></div><div class="lineitem"><span>Payment Overdue</span><b>${active.filter(r=>r.status==="payment_overdue").length}</b></div><div class="report-actions">${btn("outstanding")}</div></div>
           <div class="report-card"><h3>DUPR & Eligibility</h3><div class="lineitem"><span>Active players</span><b>${players}</b></div><div class="lineitem"><span>Verified DUPR</span><b>${verifiedDupr}</b></div><div class="lineitem"><span>Needs review</span><b>${Math.max(0,players-verifiedDupr)}</b></div><div class="report-actions">${btn("dupr")}</div></div>
           <div class="report-card"><h3>Shirt Sizes</h3>${["XS","S","M","L","XL","2XL","3XL"].map(sz=>`<div class="lineitem"><span>${sz}</span><b>${shirtCounts[sz]||0}</b></div>`).join("")}<div class="report-actions">${btn("shirts")}</div></div>
